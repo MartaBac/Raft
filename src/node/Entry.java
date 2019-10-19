@@ -1,3 +1,4 @@
+package node;
 /**
  * Entry, classe che rappresenta un elemento del log.
  * Consiste in un comando da applicare alla state machine e il term associato.

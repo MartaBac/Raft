@@ -1,3 +1,4 @@
+package node;
 
 public class StateMachine {
 	private String state;
