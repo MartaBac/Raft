@@ -13,11 +13,6 @@ public class NodeReceiver implements Runnable {
     private boolean exit;
     private Node node;
     
-//    public NodeReceiver() {
-//        System.out.println("NodeReceiver Error 001");
-//        exit(-1);
-//    }
-    
     public NodeReceiver(Node node) {
         exit = false;
         this.node = node;
@@ -26,19 +21,6 @@ public class NodeReceiver implements Runnable {
             this.port = server.getLocalPort();
         } catch (IOException ex) {
             System.out.println("NodeReceiver Error 002 - Node: " + this.node.getId());
-            ex.printStackTrace();
-            exit(-1);
-        }
-    }
-    
-    public NodeReceiver(int port, Node node) {
-        this.port = port;
-        exit = false;
-        this.node = node;
-        try {
-            server = new ServerSocket(port);
-        } catch (IOException ex) {
-            System.out.println("NodeReceiver Error 003 - Node: " + this.node.getId());
             ex.printStackTrace();
             exit(-1);
         }

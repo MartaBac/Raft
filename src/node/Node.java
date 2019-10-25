@@ -1,4 +1,5 @@
 package node;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.management.timer.Timer;
@@ -9,7 +10,7 @@ public class Node implements Runnable {
 	private int id;
 	private String address = "127.0.0.1";
 	private int port = 0;
-	private String[] addresses; // indirizzi altri nodi, o stream??
+	private ArrayList<String> addresses; // indirizzi altri nodi, o stream??
 	
 	// Receiver class
 	private NodeReceiver receiver;
@@ -55,13 +56,25 @@ public class Node implements Runnable {
 	public void setId(int id) {
 		this.id = id;
 	}
-
 	public int getPort() {
 		return port;
 	}
 
 	public void setPort(int port) {
 		this.port = port;
+	}
+	public boolean addAddress(String address) {
+		// Controllo che non mi sia passato il mio stesso indirizzo
+		if (address == this.address)
+			return false;
+		 return this.addresses.add(address);
+	}
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
 	}
 	
 }
