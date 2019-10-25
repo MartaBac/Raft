@@ -13,8 +13,9 @@ public class Launcher {
 	private static String ip = null;
 	private static HashMap<String, Node> listaNodi = new HashMap<String, Node>();
 	
-	public static void main() throws Exception{
-		Node t;
+	public static void main(String[] args) throws Exception{
+		Node t = null;
+		String z;
 		try {
 			ip = InetAddress.getLocalHost().getHostAddress();
 		} catch (UnknownHostException e) {
@@ -25,11 +26,13 @@ public class Launcher {
 			t = new Node(i,ip);
 			listaNodi.put(ip+":"+String.valueOf(t.getPort()),t);
 		}
+		z= ip+":"+String.valueOf(t.getPort());
 		
 		Iterator<Node> it = listaNodi.values().iterator();
-
 		while (it.hasNext()) {
-		    listaNodi.forEach((k,v) -> it.next().addAddress(v.getAddress()));
+			Node p = it.next();
+			// Vengono mandati tutti gli indirizzi, anche di se stesso; verrà poi scartato
+		    listaNodi.forEach((k,v) -> p.addAddress(v.getFullAddress()));
 		}
 		
 	}

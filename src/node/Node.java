@@ -10,7 +10,7 @@ public class Node implements Runnable {
 	private int id;
 	private String address = "127.0.0.1";
 	private int port = 0;
-	private ArrayList<String> addresses; // indirizzi altri nodi, o stream??
+	private ArrayList<String> addresses = new ArrayList<String>(); // indirizzi altri nodi, o stream??
 	
 	// Receiver class
 	private NodeReceiver receiver;
@@ -65,13 +65,22 @@ public class Node implements Runnable {
 	}
 	public boolean addAddress(String address) {
 		// Controllo che non mi sia passato il mio stesso indirizzo
-		if (address == this.address)
+		if (address.equals(this.address+":"+this.port))
 			return false;
 		 return this.addresses.add(address);
 	}
 	public String getAddress() {
 		return address;
 	}
+	
+	public ArrayList<String> getAddressesList() {
+		return this.addresses;
+	}
+	
+	public String getFullAddress(){
+		return this.address+":"+this.port;
+	}
+	
 	public void setAddress(String address) {
 		this.address = address;
 	}
