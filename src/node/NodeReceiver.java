@@ -6,6 +6,8 @@ import static java.lang.System.exit;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import messages.Msg;
+
 /* This class will handle the incoming messages from other nodes */
 public class NodeReceiver implements Runnable {
     private ServerSocket server;
@@ -38,7 +40,8 @@ public class NodeReceiver implements Runnable {
                 ois = new ObjectInputStream(is);
                 Msg receivedValue = (Msg) ois.readObject();
                 // TODO: distinzione tra tipo di messaggio diverso, per ora faccio una setValue sul node
-                node.setValue(receivedValue);
+                node.processMessage(receivedValue);
+                //node.setValue(receivedValue);
                 s.close();
             } catch (Exception ex) {
                 System.out.println("NodeReceiver Error 003");

@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import messages.*;
+
 
 public class Node implements Runnable {
 	
@@ -103,9 +105,19 @@ public class Node implements Runnable {
 		this.address = address;
 	}
 	
-	//TODO: remove quando sarà fatta la distinzione fra i messaggi
-	public void setValue(Msg message) {
-		this.lastMessage = message;
+	public void processMessage(Msg receivedValue){
+		if(receivedValue instanceof VoteRequest){
+			//TODO
+			return;
+		}
+		if(receivedValue instanceof VoteResponse){
+			//TODO
+			return;
+		}
+		if(receivedValue instanceof AppendRequest){
+			//TODO
+			return;
+		}
 	}
 
 	public Role getRole() {
