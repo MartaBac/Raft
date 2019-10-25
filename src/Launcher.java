@@ -35,5 +35,23 @@ public class Launcher {
 		    listaNodi.forEach((k,v) -> p.addAddress(v.getFullAddress()));
 		}
 		
+		// Run nodes
+		for (Map.Entry<String, Node> entry : listaNodi.entrySet()) {
+			Thread thread = new Thread(entry.getValue());
+			thread.start();
+		}
+		
+		// Main cycle
+		boolean exit = false;
+		while (!exit) {
+			for(Map.Entry<String, Node> entry : listaNodi.entrySet() ) {
+				String key = entry.getKey();
+				Node node = entry.getValue();
+				//System.out.println(key+" "+node.getRole());
+			}
+			//System.out.println("");
+			
+		}
+		
 	}
 }

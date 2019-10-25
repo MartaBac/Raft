@@ -28,7 +28,7 @@ public class NodeReceiver implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Receiver started for node " + node.getId() + " on port " + server.getLocalPort());
+        //System.out.println("Receiver started for node " + node.getId() + " on port " + server.getLocalPort());
         InputStream is;
         ObjectInputStream ois;
         while (!exit) {

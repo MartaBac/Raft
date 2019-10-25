@@ -1,8 +1,9 @@
 package node;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
-import javax.management.timer.Timer;
 
 public class Node implements Runnable {
 	
@@ -19,12 +20,19 @@ public class Node implements Runnable {
 	private Role role;
 	private Log log = new Log();
 	
-	private Timer electionTimer;
+	private Timer electionTimer = new Timer("electionTimer");
+	private long electionTimeout = 0;
+	private TimerTask electionTask = new TimerTask() {
+		public void run() {
+			
+            System.out.println("Ok");
+        }
+	};
 	
-	private String votedFor; // id nodo per cui ha votato
-	private int currentTerm;
-	private int commitIndex; //indice > fra i log, potrebbe essere ancora da committare
-	private int lastApplied; //indice dell'ultimo log applicato alla SM
+	private String votedFor = null; // id nodo per cui ha votato
+	private int currentTerm = 0;
+	private int commitIndex = 0; //indice > fra i log, potrebbe essere ancora da committare
+	private int lastApplied = 0; //indice dell'ultimo log applicato alla SM
 	private HashMap<Integer,Integer> nextIndex = new HashMap<Integer,Integer>();
 	private StateMachine sm = new StateMachine();
 	
@@ -33,23 +41,30 @@ public class Node implements Runnable {
 	
 	// Costruttori	
 	public Node(int id, String address){
+		// Connessioni
 		this.id = id;
 		this.address = address;
 		this.receiver = new NodeReceiver(this);
-		this.setRole(Role.FOLLOWER);
         this.setPort(this.receiver.getPort());
-        double randomDouble = Math.random();
-        randomDouble=randomDouble*(Variables.maxRet-Variables.minRet)+Variables.minRet;
-        electionTimer = new Timer();
+        // Raft
+        this.setRole(Role.FOLLOWER);
+        this.setElectionTimeout();
 	}
 	
+	private void setElectionTimeout() {
+		this.electionTimer.cancel();
+		this.electionTimer = new Timer("electionTimer");
+		double randomDouble = Math.random();
+        this.electionTimeout =(long)(randomDouble * (Variables.maxRet-Variables.minRet)) + Variables.minRet;
+        this.electionTimer.scheduleAtFixedRate(this.electionTask, 0, this.electionTimeout);
+	}
+
 	// Thread principale
 	@Override
 	public void run() {
 		Thread receiverThread = new Thread(this.receiver);
 		receiverThread.start();
-		
-		// TODO: far partire i timer
+		// Election timer
 	}
 	
 	// Getter/Setter
