@@ -36,10 +36,9 @@ public class NodeReceiver implements Runnable {
                 Socket s = server.accept();
                 is = s.getInputStream();
                 ois = new ObjectInputStream(is);
-                // TODO: ora è uno string, poi dovrà un MESSAGE (da differenziare in append e requestvote)
-                String receivedValue = (String) ois.readObject();
-                // distinzione
-                //node.setValue(receivedValue);
+                Msg receivedValue = (Msg) ois.readObject();
+                // TODO: distinzione tra tipo di messaggio diverso, per ora faccio una setValue sul node
+                node.setValue(receivedValue);
                 s.close();
             } catch (Exception ex) {
                 System.out.println("NodeReceiver Error 003");

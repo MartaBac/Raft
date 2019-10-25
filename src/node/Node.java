@@ -28,15 +28,15 @@ public class Node implements Runnable {
 	private HashMap<Integer,Integer> nextIndex = new HashMap<Integer,Integer>();
 	private StateMachine sm = new StateMachine();
 	
-	// Costruttori
-	public Node() throws Exception{
-		throw new Exception("Node error 001: missing params");
-	}
+	// TODO: remove quando verranno implementati i messaggi correttamente
+	private Msg lastMessage;
 	
-	public Node(int id, String address) throws Exception{
+	// Costruttori	
+	public Node(int id, String address){
 		this.id = id;
 		this.address = address;
 		this.receiver = new NodeReceiver(this);
+		this.role = Role.FOLLOWER;
         this.setPort(this.receiver.getPort());
 	}
 	
@@ -72,9 +72,13 @@ public class Node implements Runnable {
 	public String getAddress() {
 		return address;
 	}
-
 	public void setAddress(String address) {
 		this.address = address;
+	}
+	
+	//TODO: remove quando sarà fatta la distinzione fra i messaggi
+	public void setValue(Msg message) {
+		this.lastMessage = message;
 	}
 	
 }
