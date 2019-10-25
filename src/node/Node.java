@@ -11,7 +11,7 @@ public class Node implements Runnable {
 	private String address = "127.0.0.1";
 	private int port = 0;
 	private ArrayList<String> addresses = new ArrayList<String>(); // indirizzi altri nodi, o stream??
-	
+
 	// Receiver class
 	private NodeReceiver receiver;
 	
@@ -21,7 +21,7 @@ public class Node implements Runnable {
 	
 	private Timer electionTimer;
 	
-	private int votedFor; // id nodo per cui ha votato
+	private String votedFor; // id nodo per cui ha votato
 	private int currentTerm;
 	private int commitIndex; //indice > fra i log, potrebbe essere ancora da committare
 	private int lastApplied; //indice dell'ultimo log applicato alla SM
@@ -36,8 +36,11 @@ public class Node implements Runnable {
 		this.id = id;
 		this.address = address;
 		this.receiver = new NodeReceiver(this);
-		this.role = Role.FOLLOWER;
+		this.setRole(Role.FOLLOWER);
         this.setPort(this.receiver.getPort());
+        double randomDouble = Math.random();
+        randomDouble=randomDouble*(Variables.maxRet-Variables.minRet)+Variables.minRet;
+        electionTimer = new Timer();
 	}
 	
 	// Thread principale
@@ -88,6 +91,14 @@ public class Node implements Runnable {
 	//TODO: remove quando sarà fatta la distinzione fra i messaggi
 	public void setValue(Msg message) {
 		this.lastMessage = message;
+	}
+
+	public Role getRole() {
+		return role;
+	}
+
+	public void setRole(Role role) {
+		this.role = role;
 	}
 	
 }
