@@ -28,4 +28,9 @@ public class VoteRequest extends Msg {
 		return lastLogTerm;
 	}
 	
+	@Override
+	public String toString() {
+		return idAddress;
+	}
+	
 }

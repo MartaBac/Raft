@@ -1,4 +1,8 @@
 package node;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
@@ -13,6 +17,7 @@ public class Node implements Runnable {
 	private int id;
 	private String address = "127.0.0.1";
 	private int port = 0;
+	private String myFullAddress = address+":"+port;
 	private ArrayList<String> addresses = new ArrayList<String>(); // indirizzi altri nodi, o stream??
 
 	// Receiver class
@@ -26,8 +31,12 @@ public class Node implements Runnable {
 	private long electionTimeout = 0;
 	private TimerTask electionTask = new TimerTask() {
 		public void run() {
-			
-            System.out.println("Ok");
+            System.out.println(id+" Mando request for votes");
+            for(String nodeAddress : addresses) {
+            	// TODO: verificare che siano i parametri corretti
+            	sendMessage(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm), nodeAddress);
+            	System.out.println(id + " Send message to "+ nodeAddress);
+            }
         }
 	};
 	
@@ -48,9 +57,10 @@ public class Node implements Runnable {
 		this.address = address;
 		this.receiver = new NodeReceiver(this);
         this.setPort(this.receiver.getPort());
+        this.myFullAddress = this.address + ":" + this.port;
+        
         // Raft
         this.setRole(Role.FOLLOWER);
-        this.setElectionTimeout();
 	}
 	
 	private void setElectionTimeout() {
@@ -67,6 +77,7 @@ public class Node implements Runnable {
 		Thread receiverThread = new Thread(this.receiver);
 		receiverThread.start();
 		// Election timer
+		this.setElectionTimeout();
 	}
 	
 	// Getter/Setter
@@ -108,6 +119,9 @@ public class Node implements Runnable {
 	public void processMessage(Msg receivedValue){
 		if(receivedValue instanceof VoteRequest){
 			//TODO
+			//System.out.println(this.id+" reset timeout");
+			//this.setElectionTimeout();
+			this.sendMessage(new VoteResponse(this.currentTerm, true), ((VoteRequest) receivedValue).getIdAddress());
 			return;
 		}
 		if(receivedValue instanceof VoteResponse){
@@ -126,6 +140,30 @@ public class Node implements Runnable {
 
 	public void setRole(Role role) {
 		this.role = role;
+	}
+	
+	private boolean sendMessage(Msg voteRequest, String address) {
+		String[] split = address.split(":");
+		String receiverAddress = split[0];
+		int receiverPort = Integer.parseInt(split[1]);
+		OutputStream os = null;			
+        ObjectOutputStream oos = null;
+        InetSocketAddress addr = new InetSocketAddress(receiverAddress, receiverPort);
+        Socket s = new Socket();
+        try {
+            s.connect(addr);
+            os = s.getOutputStream();			
+            oos = new ObjectOutputStream(os);
+            oos.writeObject(voteRequest);
+            oos.flush();
+            s.close();
+            System.out.println("Sent value [" + voteRequest.toString() + "] to "
+                    + address);
+        } catch (Exception ex) {
+            System.out.println("Connection error 002");
+            return false;
+        }
+        return true;		
 	}
 	
 }

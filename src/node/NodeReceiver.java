@@ -44,7 +44,7 @@ public class NodeReceiver implements Runnable {
                 //node.setValue(receivedValue);
                 s.close();
             } catch (Exception ex) {
-                System.out.println("NodeReceiver Error 003");
+                System.out.println(this.node.getId() + " NodeReceiver Error 003");
                 ex.printStackTrace();
             }
         }
