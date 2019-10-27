@@ -3,7 +3,6 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import node.Node;
 
@@ -15,7 +14,6 @@ public class Launcher {
 	
 	public static void main(String[] args) throws Exception{
 		Node t = null;
-		String z;
 		try {
 			ip = InetAddress.getLocalHost().getHostAddress();
 		} catch (UnknownHostException e) {
@@ -26,8 +24,6 @@ public class Launcher {
 			t = new Node(i,ip);
 			listaNodi.put(ip+":"+String.valueOf(t.getPort()),t);
 		}
-		z= ip+":"+String.valueOf(t.getPort());
-		
 		Iterator<Node> it = listaNodi.values().iterator();
 		while (it.hasNext()) {
 			Node p = it.next();

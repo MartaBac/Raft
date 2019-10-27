@@ -1,6 +1,10 @@
 package messages;
 
 public class VoteRequest extends Msg {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private String idAddress;
 	private int lastLogIndex;
 	private int lastLogTerm;

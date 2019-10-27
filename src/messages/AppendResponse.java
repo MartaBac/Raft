@@ -1,6 +1,10 @@
 package messages;
 
 public class AppendResponse extends Msg {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private boolean success;
 	public AppendResponse(int term, boolean success) {
 		this.term = term;

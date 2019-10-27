@@ -1,12 +1,19 @@
 package node;
 
 public enum Role {
-	LEADER, 
-	CANDIDATE,
-	FOLLOWER;
+	LEADER("Leader"), 
+	CANDIDATE("Candidate"),
+	FOLLOWER("Follower");
 	
-	private Role() {
-        
+	private final String roleName;
+	
+	private Role(String roleName) {
+		this.roleName = roleName;
     }
 	
+	@Override
+	public String toString(){
+		
+		return roleName;
+	}
 }

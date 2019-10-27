@@ -3,6 +3,10 @@ package messages;
 import node.Entry;
 
 public class AppendRequest extends Msg {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	int toBeCommitted;
 	private String leaderId;
 	private int prevLogIndex;

@@ -31,7 +31,8 @@ public class Node implements Runnable {
 	private long electionTimeout = 0;
 	private TimerTask electionTask = new TimerTask() {
 		public void run() {
-            System.out.println(id+" Mando request for votes");
+			role = Role.CANDIDATE;
+            System.out.println(role.toString() + " " + id+" Mando request for votes");
             for(String nodeAddress : addresses) {
             	// TODO: verificare che siano i parametri corretti
             	sendMessage(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm), nodeAddress);
@@ -46,9 +47,6 @@ public class Node implements Runnable {
 	private int lastApplied = 0; //indice dell'ultimo log applicato alla SM
 	private HashMap<Integer,Integer> nextIndex = new HashMap<Integer,Integer>();
 	private StateMachine sm = new StateMachine();
-	
-	// TODO: remove quando verranno implementati i messaggi correttamente
-	private Msg lastMessage;
 	
 	// Costruttori	
 	public Node(int id, String address){
@@ -80,6 +78,57 @@ public class Node implements Runnable {
 		this.setElectionTimeout();
 	}
 	
+	public boolean addAddress(String address) {
+		// Controllo che non mi sia passato il mio stesso indirizzo
+		if (address.equals(this.address+":"+this.port))
+			return false;
+		 return this.addresses.add(address);
+	}
+	
+	public void processMessage(Msg receivedValue){
+		if(receivedValue instanceof VoteRequest){
+			//TODO
+			//System.out.println(this.id+" reset timeout");
+			//this.setElectionTimeout();
+			this.sendMessage(new VoteResponse(this.currentTerm, true), ((VoteRequest) receivedValue).getIdAddress());
+			this.votedFor = ((VoteRequest) receivedValue).getIdAddress();
+			return;
+		}
+		if(receivedValue instanceof VoteResponse){
+			//TODO
+			return;
+		}
+		if(receivedValue instanceof AppendRequest){
+			//TODO
+			return;
+		}
+	}
+
+	
+	private boolean sendMessage(Msg msg, String address) {
+		String[] split = address.split(":");
+		String receiverAddress = split[0];
+		int receiverPort = Integer.parseInt(split[1]);
+		OutputStream os = null;			
+        ObjectOutputStream oos = null;
+        InetSocketAddress addr = new InetSocketAddress(receiverAddress, receiverPort);
+        Socket s = new Socket();
+        try {
+            s.connect(addr);
+            os = s.getOutputStream();			
+            oos = new ObjectOutputStream(os);
+            oos.writeObject(msg);
+            oos.flush();
+            s.close();
+            System.out.println("Sent value [" + msg.toString() + "] to "
+                    + address);
+        } catch (Exception ex) {
+            System.out.println("Connection error 002");
+            return false;
+        }
+        return true;		
+	}
+	
 	// Getter/Setter
 	public int getId() {
 		return id;
@@ -94,12 +143,19 @@ public class Node implements Runnable {
 	public void setPort(int port) {
 		this.port = port;
 	}
-	public boolean addAddress(String address) {
-		// Controllo che non mi sia passato il mio stesso indirizzo
-		if (address.equals(this.address+":"+this.port))
-			return false;
-		 return this.addresses.add(address);
+
+	public Role getRole() {
+		return role;
 	}
+
+	public void setRole(Role role) {
+		this.role = role;
+	}
+
+	public String getVotedFor() {
+		return votedFor;
+	}
+	
 	public String getAddress() {
 		return address;
 	}
@@ -114,56 +170,6 @@ public class Node implements Runnable {
 	
 	public void setAddress(String address) {
 		this.address = address;
-	}
-	
-	public void processMessage(Msg receivedValue){
-		if(receivedValue instanceof VoteRequest){
-			//TODO
-			//System.out.println(this.id+" reset timeout");
-			//this.setElectionTimeout();
-			this.sendMessage(new VoteResponse(this.currentTerm, true), ((VoteRequest) receivedValue).getIdAddress());
-			return;
-		}
-		if(receivedValue instanceof VoteResponse){
-			//TODO
-			return;
-		}
-		if(receivedValue instanceof AppendRequest){
-			//TODO
-			return;
-		}
-	}
-
-	public Role getRole() {
-		return role;
-	}
-
-	public void setRole(Role role) {
-		this.role = role;
-	}
-	
-	private boolean sendMessage(Msg voteRequest, String address) {
-		String[] split = address.split(":");
-		String receiverAddress = split[0];
-		int receiverPort = Integer.parseInt(split[1]);
-		OutputStream os = null;			
-        ObjectOutputStream oos = null;
-        InetSocketAddress addr = new InetSocketAddress(receiverAddress, receiverPort);
-        Socket s = new Socket();
-        try {
-            s.connect(addr);
-            os = s.getOutputStream();			
-            oos = new ObjectOutputStream(os);
-            oos.writeObject(voteRequest);
-            oos.flush();
-            s.close();
-            System.out.println("Sent value [" + voteRequest.toString() + "] to "
-                    + address);
-        } catch (Exception ex) {
-            System.out.println("Connection error 002");
-            return false;
-        }
-        return true;		
 	}
 	
 }
