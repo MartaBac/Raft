@@ -14,4 +14,8 @@ public class AppendResponse extends Msg {
 		return success;
 	}
 	
+	public int getTerm() {
+		return this.term;
+	}
+	
 }

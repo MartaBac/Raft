@@ -70,8 +70,6 @@ public class Node implements Runnable {
 	public void run() {
 		Thread receiverThread = new Thread(this.receiver);
 		receiverThread.start();
-		// Election timer
-		this.setElectionTimeout();
 	}
 	
 	public boolean addAddress(String address) {
@@ -82,9 +80,6 @@ public class Node implements Runnable {
 	}
 	
 	public void processMessage(Msg receivedValue){
-		
-		
-		
 		if(receivedValue instanceof VoteRequest){
 			VoteRequest resp = (VoteRequest) receivedValue;
 			
@@ -127,7 +122,11 @@ public class Node implements Runnable {
 			AppendRequest resp = (AppendRequest) receivedValue;
 			if(resp.getEntry() == null){
 				// heartbeat
-				this.setElectionTimeout();
+				this.votedFor = null;
+				this.voters.clear();
+				if (resp.getPrevLogTerm() >= this.currentTerm) {
+					this.setRole(Role.FOLLOWER);
+				}
 			}
 			return;
 		}
