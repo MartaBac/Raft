@@ -30,7 +30,6 @@ public class NodeReceiver implements Runnable {
 
     @Override
     public void run() {
-        //System.out.println("Receiver started for node " + node.getId() + " on port " + server.getLocalPort());
         InputStream is;
         ObjectInputStream ois;
         while (!exit) {
@@ -39,9 +38,8 @@ public class NodeReceiver implements Runnable {
                 is = s.getInputStream();
                 ois = new ObjectInputStream(is);
                 Msg receivedValue = (Msg) ois.readObject();
-                // TODO: distinzione tra tipo di messaggio diverso, per ora faccio una setValue sul node
+                System.out.println(node.getId() + " received message");
                 node.processMessage(receivedValue);
-                //node.setValue(receivedValue);
                 s.close();
             } catch (Exception ex) {
                 System.out.println(this.node.getId() + " NodeReceiver Error 003");

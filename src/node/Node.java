@@ -5,6 +5,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -24,22 +26,12 @@ public class Node implements Runnable {
 	private NodeReceiver receiver;
 	
 	// Raft variables
-	private Role role;
+	private Role role = Role.FOLLOWER;
 	private Log log = new Log();
 	
-	private Timer electionTimer = new Timer("electionTimer");
+	private Timer electionTimer = new Timer("electionTimer" + this.id);
 	private long electionTimeout = 0;
-	private TimerTask electionTask = new TimerTask() {
-		public void run() {
-			role = Role.CANDIDATE;
-            System.out.println(role.toString() + " " + id+" Mando request for votes");
-            for(String nodeAddress : addresses) {
-            	// TODO: verificare che siano i parametri corretti
-            	sendMessage(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm), nodeAddress);
-            	System.out.println(id + " Send message to "+ nodeAddress);
-            }
-        }
-	};
+	private HashSet<String> voters = new HashSet<String>(); // totale voti ricevuti
 	
 	private String votedFor = null; // id nodo per cui ha votato
 	private int currentTerm = 0;
@@ -63,10 +55,14 @@ public class Node implements Runnable {
 	
 	private void setElectionTimeout() {
 		this.electionTimer.cancel();
-		this.electionTimer = new Timer("electionTimer");
+		this.electionTimer = new Timer("electionTimer"+this.id);
 		double randomDouble = Math.random();
         this.electionTimeout =(long)(randomDouble * (Variables.maxRet-Variables.minRet)) + Variables.minRet;
-        this.electionTimer.scheduleAtFixedRate(this.electionTask, 0, this.electionTimeout);
+        this.electionTimer.schedule(new TimerTask() {
+    		public void run() {
+    			setRole(Role.CANDIDATE);    			
+            }
+    	}, this.electionTimeout);
 	}
 
 	// Thread principale
@@ -87,15 +83,38 @@ public class Node implements Runnable {
 	
 	public void processMessage(Msg receivedValue){
 		if(receivedValue instanceof VoteRequest){
-			//TODO
-			//System.out.println(this.id+" reset timeout");
-			//this.setElectionTimeout();
-			this.sendMessage(new VoteResponse(this.currentTerm, true), ((VoteRequest) receivedValue).getIdAddress());
-			this.votedFor = ((VoteRequest) receivedValue).getIdAddress();
+			VoteRequest resp = (VoteRequest) receivedValue;
+			
+			System.out.println(this.id+" reset timeout");
+			this.setElectionTimeout();
+			
+			// Controllo se votare per lui o no
+			if(resp.getTerm() < this.currentTerm) {
+				this.sendMessage(new VoteResponse(this.currentTerm, false, this.myFullAddress), resp.getIdAddress());
+				return;
+			} else {
+				// TODO: Check parametri
+				if ((this.votedFor == null || this.votedFor.equals(resp.getIdAddress())) && resp.getLastLogIndex() >= this.lastApplied) {
+					this.sendMessage(new VoteResponse(this.currentTerm, true, this.myFullAddress), resp.getIdAddress());
+					this.votedFor = resp.getIdAddress();
+					return;
+				}
+			}
+			this.sendMessage(new VoteResponse(this.currentTerm, false, this.myFullAddress), resp.getIdAddress());
 			return;
 		}
 		if(receivedValue instanceof VoteResponse){
-			//TODO
+			VoteResponse resp = (VoteResponse) receivedValue;
+			if (resp.isVoteGranted()) {
+				voters.add(resp.getIdAddress());
+			} else {
+				if(resp.getTerm() > this.currentTerm) {
+					this.currentTerm = resp.getTerm();
+					this.setRole(Role.FOLLOWER);
+				}
+			}
+			
+			// TODO: controllo se numero di voti è suff per diventare leader (this.setLeader)
 			return;
 		}
 		if(receivedValue instanceof AppendRequest){
@@ -114,14 +133,14 @@ public class Node implements Runnable {
         InetSocketAddress addr = new InetSocketAddress(receiverAddress, receiverPort);
         Socket s = new Socket();
         try {
+        	System.out.println(this.id+ " sending message");
             s.connect(addr);
             os = s.getOutputStream();			
             oos = new ObjectOutputStream(os);
             oos.writeObject(msg);
             oos.flush();
             s.close();
-            System.out.println("Sent value [" + msg.toString() + "] to "
-                    + address);
+            System.out.println(this.id + " sent message");
         } catch (Exception ex) {
             System.out.println("Connection error 002");
             return false;
@@ -130,6 +149,32 @@ public class Node implements Runnable {
 	}
 	
 	// Getter/Setter
+	public void setRole(Role role) {
+		System.out.println(this.id + " change role to " + getRole());
+		this.voters.clear();
+		this.role = role;
+		switch (role) {
+		case FOLLOWER:
+			
+			break;
+		case CANDIDATE:
+			this.currentTerm++;
+			this.votedFor = this.myFullAddress;
+			this.setElectionTimeout();
+            System.out.println(id + " " + role.toString() + " mando request for votes");
+            for(String nodeAddress : addresses) {
+            	// TODO: verificare che siano i parametri corretti
+            	this.sendMessage(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm), nodeAddress);
+            }
+			break;
+		case LEADER:
+			break;
+		default:
+			System.out.println("Invalid role");
+			break;
+		}
+	}
+	
 	public int getId() {
 		return id;
 	}
@@ -146,10 +191,6 @@ public class Node implements Runnable {
 
 	public Role getRole() {
 		return role;
-	}
-
-	public void setRole(Role role) {
-		this.role = role;
 	}
 
 	public String getVotedFor() {

@@ -13,6 +13,7 @@ public class Launcher {
 	private static HashMap<String, Node> listaNodi = new HashMap<String, Node>();
 	
 	public static void main(String[] args) throws Exception{
+		System.out.println("INIZIO");
 		Node t = null;
 		try {
 			ip = InetAddress.getLocalHost().getHostAddress();
@@ -45,7 +46,7 @@ public class Launcher {
 				Node node = entry.getValue();
 				//System.out.println(key+" "+node.getRole());
 			}
-			//System.out.println("");
+			
 			
 		}
 		
