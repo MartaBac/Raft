@@ -23,6 +23,21 @@ public class AppendRequest extends Msg {
 		this.entry = entry;
 		
 	}
+	/**
+	 * Heartbeat 
+	 * @param leaderId
+	 * @param prevLogIndex
+	 * @param prevLogTerm
+	 * @param leaderCommit
+	 */
+	public AppendRequest(String leaderId, int prevLogIndex, int prevLogTerm,
+			int leaderCommit){
+		this.leaderId = leaderId;
+		this.prevLogIndex = prevLogIndex;
+		this.prevLogTerm = prevLogTerm;
+		this.leaderCommit = leaderCommit;
+		this.entry = null;
+	}
 	public String getLeaderId() {
 		return leaderId;
 	}

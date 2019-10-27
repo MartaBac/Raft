@@ -37,7 +37,7 @@ public class Node implements Runnable {
 	private int currentTerm = 0;
 	private int commitIndex = 0; //indice > fra i log, potrebbe essere ancora da committare
 	private int lastApplied = 0; //indice dell'ultimo log applicato alla SM
-	private HashMap<Integer,Integer> nextIndex = new HashMap<Integer,Integer>();
+	private HashMap<String,Integer> nextIndex = new HashMap<String,Integer>();
 	private StateMachine sm = new StateMachine();
 	
 	// Costruttori	
@@ -82,6 +82,9 @@ public class Node implements Runnable {
 	}
 	
 	public void processMessage(Msg receivedValue){
+		
+		
+		
 		if(receivedValue instanceof VoteRequest){
 			VoteRequest resp = (VoteRequest) receivedValue;
 			
@@ -113,12 +116,19 @@ public class Node implements Runnable {
 					this.setRole(Role.FOLLOWER);
 				}
 			}
-			
-			// TODO: controllo se numero di voti è suff per diventare leader (this.setLeader)
+			// Controllo voti
+			 if(Math.ceil(((double) this.addresses.size() + 1)/2) 
+					 <= (this.voters.size() + 1)){
+				 this.setRole(Role.LEADER);
+			 }
 			return;
 		}
 		if(receivedValue instanceof AppendRequest){
-			//TODO
+			AppendRequest resp = (AppendRequest) receivedValue;
+			if(resp.getEntry() == null){
+				// heartbeat
+				this.setElectionTimeout();
+			}
 			return;
 		}
 	}
@@ -133,19 +143,25 @@ public class Node implements Runnable {
         InetSocketAddress addr = new InetSocketAddress(receiverAddress, receiverPort);
         Socket s = new Socket();
         try {
-        	System.out.println(this.id+ " sending message");
+        	//System.out.println(this.id+ " sending message");
             s.connect(addr);
             os = s.getOutputStream();			
             oos = new ObjectOutputStream(os);
             oos.writeObject(msg);
             oos.flush();
             s.close();
-            System.out.println(this.id + " sent message");
+            //System.out.println(this.id + " sent message");
         } catch (Exception ex) {
             System.out.println("Connection error 002");
             return false;
         }
         return true;		
+	}
+	
+	private void sendBroadcast(Msg message){
+		for(String nodeAddress : addresses) {
+        	this.sendMessage(message, nodeAddress);
+        }
 	}
 	
 	// Getter/Setter
@@ -155,19 +171,29 @@ public class Node implements Runnable {
 		this.role = role;
 		switch (role) {
 		case FOLLOWER:
-			
+			this.setElectionTimeout();
 			break;
 		case CANDIDATE:
 			this.currentTerm++;
 			this.votedFor = this.myFullAddress;
 			this.setElectionTimeout();
             System.out.println(id + " " + role.toString() + " mando request for votes");
-            for(String nodeAddress : addresses) {
-            	// TODO: verificare che siano i parametri corretti
-            	this.sendMessage(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm), nodeAddress);
-            }
+            //TODO controllare correttezza parametri
+            this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm));
 			break;
 		case LEADER:
+			// heartbeat
+			// Disattivo timeoutElection
+			this.electionTimer.cancel();
+			// TODO rimpiazzare this.currentTerm col Term dell'ultimo log nel log
+			AppendRequest heartbeat = new AppendRequest(this.myFullAddress, 
+					this.log.getDimension(), this.currentTerm - 1, this.commitIndex);
+			this.sendBroadcast(heartbeat);
+			this.nextIndex.clear();
+			for(String nodeAd : this.addresses){
+				// Controllare se è commitIndex or lastApplied
+				this.nextIndex.put(nodeAd, this.commitIndex + 1);
+			}
 			break;
 		default:
 			System.out.println("Invalid role");

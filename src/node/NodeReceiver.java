@@ -38,7 +38,7 @@ public class NodeReceiver implements Runnable {
                 is = s.getInputStream();
                 ois = new ObjectInputStream(is);
                 Msg receivedValue = (Msg) ois.readObject();
-                System.out.println(node.getId() + " received message");
+                //System.out.println(node.getId() + " received message");
                 node.processMessage(receivedValue);
                 s.close();
             } catch (Exception ex) {
