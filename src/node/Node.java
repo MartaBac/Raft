@@ -29,11 +29,12 @@ public class Node implements Runnable {
 	// Raft variables
 	private Role role = Role.FOLLOWER;
 	private Log log = new Log();
-
-	private Timer electionTimer = new Timer("electionTimer" + this.id);
+	
+	private Timer timer = new Timer("timer"+this.id);
+	private ElectionTask electionTask = new ElectionTask(this);
+	private HeartbeatTask heartbeatTask = new HeartbeatTask(this);
 	private long electionTimeout = 0;
-	private Timer heartbeatTimer = new Timer("heartbeatTimer" + this.id);
-	private long heartbeatTimeout = 0;
+	private long heartbeatTimeout = Variables.heartbeat;
 
 	private HashSet<String> voters = new HashSet<String>(); // totale voti ricevuti
 
@@ -55,40 +56,28 @@ public class Node implements Runnable {
 	}
 
 	private void setElectionTimeout() {
-		this.electionTimer.cancel();
-		this.electionTimer.purge();
-		this.electionTimer = new Timer("electionTimer" + this.id);
+		this.stopElection();
+		this.electionTask = new ElectionTask(this);
 		double randomDouble = Math.random();
 		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - Variables.minRet)) + Variables.minRet;
-		this.electionTimer.schedule(new TimerTask() {
-			public void run() {
-				System.out.println(id + " scaduto timer" );
-				setRole(Role.CANDIDATE);
-			}
-		}, this.electionTimeout);
+		this.timer.schedule(this.electionTask, this.electionTimeout);
+	}
+	
+	private void stopElection(){
+		this.electionTask.cancel();
 	}
 
 	private void startHeartbeats() {
-		// TODO rimpiazzare this.currentTerm col Term dell'ultimo log nel log
 		AppendRequest heartbeat = new AppendRequest(this.currentTerm, this.myFullAddress, this.log.getDimension(), this.currentTerm - 1,
 				this.commitIndex);
 		this.sendBroadcast(heartbeat);
-		this.heartbeatTimer.cancel();
-		this.heartbeatTimer = new Timer("heartbeatTimer" + this.id);
-		this.heartbeatTimeout = Variables.heartbeat;
-		this.heartbeatTimer.schedule(new TimerTask() {
-			public void run() {
-				// Spedisco heartbeat
-				// TODO rimpiazzare this.currentTerm col Term dell'ultimo log nel log
-				AppendRequest heartbeat = new AppendRequest(currentTerm, myFullAddress, log.getDimension(), currentTerm - 1,
-						commitIndex);
-				sendBroadcast(heartbeat);
-			}
-		}, this.heartbeatTimeout);
+		this.stopHeartbeats();
+		this.heartbeatTask = new HeartbeatTask(this);
+		this.timer.schedule(this.heartbeatTask, 0, this.heartbeatTimeout);
 	}
 	
 	private void stopHeartbeats(){
-		this.heartbeatTimer.cancel();
+		this.heartbeatTask.cancel();
 	}
 
 	// Thread principale
@@ -101,11 +90,9 @@ public class Node implements Runnable {
 	}
 
 	public void processMessage(Msg receivedValue) {
-		System.out.println("to " + this.getId() +  " " + receivedValue.toString());
 		if (receivedValue instanceof VoteRequest) {
 			VoteRequest resp = (VoteRequest) receivedValue;
 
-			//System.out.println(this.id + " reset timeout");
 			if(!this.role.equals(Role.LEADER))
 				this.setElectionTimeout();
 
@@ -115,14 +102,11 @@ public class Node implements Runnable {
 				// aggiorno term???
 				if ((this.votedFor == null || this.votedFor.equals(resp.getIdAddress()))){
 						//&& resp.getLastLogIndex() >= this.lastApplied) {
-					System.out.println(this.id + " vote true to " + resp.getIdAddress() +
-							" mio: " + this.currentTerm + " suo:" + resp.getTerm());
 					this.sendMessage(new VoteResponse(this.currentTerm, true, this.myFullAddress), resp.getIdAddress());
 					this.votedFor = resp.getIdAddress();
 					return;
 				}
 			}
-			System.out.println(this.id + " vote false to " + resp.getIdAddress());
 			this.sendMessage(new VoteResponse(this.currentTerm, false, this.myFullAddress), resp.getIdAddress());
 			return;
 		}
@@ -158,7 +142,6 @@ public class Node implements Runnable {
 					if(this.role != Role.FOLLOWER)
 						this.setRole(Role.FOLLOWER);
 					else{
-						System.out.println("-> reset timer " + id);
 						this.setElectionTimeout();
 					}
 				}
@@ -187,14 +170,12 @@ public class Node implements Runnable {
 		InetSocketAddress addr = new InetSocketAddress(receiverAddress, receiverPort);
 		Socket s = new Socket();
 		try {
-			// System.out.println(this.id+ " sending message");
 			s.connect(addr);
 			os = s.getOutputStream();
 			oos = new ObjectOutputStream(os);
 			oos.writeObject(msg);
 			oos.flush();
 			s.close();
-			// System.out.println(this.id + " sent message");
 		} catch (Exception ex) {
 			System.out.println("Connection error 002");
 			return false;
@@ -202,7 +183,7 @@ public class Node implements Runnable {
 		return true;
 	}
 
-	private void sendBroadcast(Msg message) {
+	public void sendBroadcast(Msg message) {
 		for (String nodeAddress : this.addresses) {
 			this.sendMessage(message, nodeAddress);
 		}
@@ -217,31 +198,25 @@ public class Node implements Runnable {
 
 	// Getter/Setter
 	public void setRole(Role role) {
-		System.out.println(this.id + " change role to " + role.toString());
 		this.voters.clear();
 		this.role = role;
 		switch (role) {
 		case FOLLOWER:
 			this.setElectionTimeout();
 			this.stopHeartbeats();
-			System.out.println("++ follower" + this.getId());
 			break;
 		case CANDIDATE:
-			System.out.println("-- candidate" + this.getId());
 			this.currentTerm++;
 			this.voters.clear();
 			this.votedFor = this.myFullAddress;
 			this.setElectionTimeout();
-			System.out.println(id + " " + role.toString() + " mando request for votes");
 			// TODO controllare correttezza parametri
 			this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm));
 			break;
 		case LEADER:
 			// heartbeat
 			// Disattivo timeoutElection
-			System.out.println("++ leader" + this.getId());
-			this.electionTimer.cancel();
-			this.electionTimer.purge();
+			this.stopElection();
 			this.nextIndex.clear();
 			for (String nodeAd : this.addresses) {
 				// Controllare se è commitIndex or lastApplied
@@ -250,7 +225,6 @@ public class Node implements Runnable {
 			this.startHeartbeats();
 			break;
 		default:
-			System.out.println("Invalid role");
 			break;
 		}
 	}
@@ -294,5 +268,18 @@ public class Node implements Runnable {
 	public void setAddress(String address) {
 		this.address = address;
 	}
+	
+	public int getCurrentTerm() {
+		return this.currentTerm;
+	}
+	
+	public Log getLog() {
+		return this.log;
+	}
+	
+	public int getCommitIndex() {
+		return this.commitIndex;
+	}
+
 
 }

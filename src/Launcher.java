@@ -46,13 +46,13 @@ public class Launcher {
 			for (Map.Entry<String, Node> entry : listaNodi.entrySet()) {
 				String key = entry.getKey();
 				Node node = entry.getValue();
-				//System.out.println(key + " " + node.getRole());
+//				System.out.println(" "+key + " " + node.getRole());
 				if(node.getRole().equals(Role.LEADER))
 					leader++;				
 			}
 			if(leader>1)
 				System.exit(-1);
-			//System.out.println("");
+//			System.out.println("");
 		}
 	}
 }
