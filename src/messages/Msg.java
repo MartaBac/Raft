@@ -11,6 +11,6 @@ public abstract class Msg implements Serializable{
 	
 	@Override
 	public String toString(){
-		return " from term " + Integer.toString(this.term) + " Message " + this.getClass();
+		return " Message " + this.getClass();
 	}
 }

@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -55,11 +56,13 @@ public class Node implements Runnable {
 
 	private void setElectionTimeout() {
 		this.electionTimer.cancel();
+		this.electionTimer.purge();
 		this.electionTimer = new Timer("electionTimer" + this.id);
 		double randomDouble = Math.random();
 		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - Variables.minRet)) + Variables.minRet;
 		this.electionTimer.schedule(new TimerTask() {
 			public void run() {
+				System.out.println(id + " scaduto timer" );
 				setRole(Role.CANDIDATE);
 			}
 		}, this.electionTimeout);
@@ -80,7 +83,6 @@ public class Node implements Runnable {
 				AppendRequest heartbeat = new AppendRequest(currentTerm, myFullAddress, log.getDimension(), currentTerm - 1,
 						commitIndex);
 				sendBroadcast(heartbeat);
-
 			}
 		}, this.heartbeatTimeout);
 	}
@@ -104,7 +106,8 @@ public class Node implements Runnable {
 			VoteRequest resp = (VoteRequest) receivedValue;
 
 			//System.out.println(this.id + " reset timeout");
-			this.setElectionTimeout();
+			if(!this.role.equals(Role.LEADER))
+				this.setElectionTimeout();
 
 			// Controllo se votare per lui o no
 			if (resp.getTerm() >=  this.currentTerm) {
@@ -155,6 +158,7 @@ public class Node implements Runnable {
 					if(this.role != Role.FOLLOWER)
 						this.setRole(Role.FOLLOWER);
 					else{
+						System.out.println("-> reset timer " + id);
 						this.setElectionTimeout();
 					}
 				}
@@ -237,6 +241,7 @@ public class Node implements Runnable {
 			// Disattivo timeoutElection
 			System.out.println("++ leader" + this.getId());
 			this.electionTimer.cancel();
+			this.electionTimer.purge();
 			this.nextIndex.clear();
 			for (String nodeAd : this.addresses) {
 				// Controllare se è commitIndex or lastApplied
