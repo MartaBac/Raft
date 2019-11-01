@@ -82,7 +82,7 @@ public class Node implements Runnable {
 		this.timer.schedule(this.heartbeatTask, 0, this.heartbeatTimeout);
 	}
 	
-	private void stopHeartbeats(){
+	public void stopHeartbeats(){
 		this.heartbeatTask.cancel();
 	}
 
@@ -286,6 +286,10 @@ public class Node implements Runnable {
 	
 	public int getCommitIndex() {
 		return this.commitIndex;
+	}
+	
+	public void setHeartbeatTimeout(int time){
+		this.heartbeatTimeout = time;
 	}
 
 
