@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import node.Node;
+import node.Role;
 
 public class Launcher {
 	private static final int nNodes = 5;
@@ -41,12 +42,17 @@ public class Launcher {
 		// Main cycle
 		boolean exit = false;
 		while (!exit) {
+			int leader=0;
 			for (Map.Entry<String, Node> entry : listaNodi.entrySet()) {
 				String key = entry.getKey();
 				Node node = entry.getValue();
-				System.out.println(key + " " + node.getRole());
+				//System.out.println(key + " " + node.getRole());
+				if(node.getRole().equals(Role.LEADER))
+					leader++;				
 			}
-			System.out.println("");
+			if(leader>1)
+				System.exit(-1);
+			//System.out.println("");
 		}
 	}
 }

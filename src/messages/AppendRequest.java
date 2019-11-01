@@ -8,19 +8,21 @@ public class AppendRequest extends Msg {
 	 */
 	private static final long serialVersionUID = 1L;
 	int toBeCommitted;
+	private int term;
 	private String leaderId;
 	private int prevLogIndex;
 	private int prevLogTerm;
 	private Entry entry;
 	private int leaderCommit;
 	
-	public AppendRequest(String leaderId, int prevLogIndex, int prevLogTerm, Entry entry,
+	public AppendRequest(int term, String leaderId, int prevLogIndex, int prevLogTerm, Entry entry,
 			int leaderCommit){
 		this.leaderId = leaderId;
 		this.prevLogIndex = prevLogIndex;
 		this.prevLogTerm = prevLogTerm;
 		this.leaderCommit = leaderCommit;
 		this.entry = entry;
+		this.term = term;
 		
 	}
 	/**
@@ -30,13 +32,14 @@ public class AppendRequest extends Msg {
 	 * @param prevLogTerm
 	 * @param leaderCommit
 	 */
-	public AppendRequest(String leaderId, int prevLogIndex, int prevLogTerm,
+	public AppendRequest(int term, String leaderId, int prevLogIndex, int prevLogTerm,
 			int leaderCommit){
 		this.leaderId = leaderId;
 		this.prevLogIndex = prevLogIndex;
 		this.prevLogTerm = prevLogTerm;
 		this.leaderCommit = leaderCommit;
 		this.entry = null;
+		this.term = term;
 	}
 	public String getLeaderId() {
 		return leaderId;
@@ -67,5 +70,11 @@ public class AppendRequest extends Msg {
 	}
 	public void setLeaderCommit(int leaderCommit) {
 		this.leaderCommit = leaderCommit;
+	}
+	public int getTerm() {
+		return term;
+	}
+	public void setTerm(int term) {
+		this.term = term;
 	}
 }

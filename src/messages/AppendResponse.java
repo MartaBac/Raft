@@ -18,4 +18,9 @@ public class AppendResponse extends Msg {
 		return this.term;
 	}
 	
+	@Override
+	public String toString(){
+		return " Heartbeat response " + this.success;
+	}
+	
 }

@@ -67,7 +67,7 @@ public class Node implements Runnable {
 
 	private void startHeartbeats() {
 		// TODO rimpiazzare this.currentTerm col Term dell'ultimo log nel log
-		AppendRequest heartbeat = new AppendRequest(this.myFullAddress, this.log.getDimension(), this.currentTerm - 1,
+		AppendRequest heartbeat = new AppendRequest(this.currentTerm, this.myFullAddress, this.log.getDimension(), this.currentTerm - 1,
 				this.commitIndex);
 		this.sendBroadcast(heartbeat);
 		this.heartbeatTimer.cancel();
@@ -77,12 +77,16 @@ public class Node implements Runnable {
 			public void run() {
 				// Spedisco heartbeat
 				// TODO rimpiazzare this.currentTerm col Term dell'ultimo log nel log
-				AppendRequest heartbeat = new AppendRequest(myFullAddress, log.getDimension(), currentTerm - 1,
+				AppendRequest heartbeat = new AppendRequest(currentTerm, myFullAddress, log.getDimension(), currentTerm - 1,
 						commitIndex);
 				sendBroadcast(heartbeat);
 
 			}
 		}, this.heartbeatTimeout);
+	}
+	
+	private void stopHeartbeats(){
+		this.heartbeatTimer.cancel();
 	}
 
 	// Thread principale
@@ -95,52 +99,78 @@ public class Node implements Runnable {
 	}
 
 	public void processMessage(Msg receivedValue) {
+		System.out.println("to " + this.getId() +  " " + receivedValue.toString());
 		if (receivedValue instanceof VoteRequest) {
 			VoteRequest resp = (VoteRequest) receivedValue;
 
-			System.out.println(this.id + " reset timeout");
+			//System.out.println(this.id + " reset timeout");
 			this.setElectionTimeout();
 
 			// Controllo se votare per lui o no
 			if (resp.getTerm() >=  this.currentTerm) {
 				// TODO: Check parametri
-				if ((this.votedFor == null || this.votedFor.equals(resp.getIdAddress()))
-						&& resp.getLastLogIndex() >= this.lastApplied) {
+				// aggiorno term???
+				if ((this.votedFor == null || this.votedFor.equals(resp.getIdAddress()))){
+						//&& resp.getLastLogIndex() >= this.lastApplied) {
+					System.out.println(this.id + " vote true to " + resp.getIdAddress() +
+							" mio: " + this.currentTerm + " suo:" + resp.getTerm());
 					this.sendMessage(new VoteResponse(this.currentTerm, true, this.myFullAddress), resp.getIdAddress());
 					this.votedFor = resp.getIdAddress();
 					return;
 				}
 			}
+			System.out.println(this.id + " vote false to " + resp.getIdAddress());
 			this.sendMessage(new VoteResponse(this.currentTerm, false, this.myFullAddress), resp.getIdAddress());
 			return;
 		}
 		if (receivedValue instanceof VoteResponse) {
 			VoteResponse resp = (VoteResponse) receivedValue;
-			if (resp.isVoteGranted()) {
-				voters.add(resp.getIdAddress());
-			} else {
-				if (resp.getTerm() > this.currentTerm) {
-					this.currentTerm = resp.getTerm();
-					this.setRole(Role.FOLLOWER);
-				}
+			
+			if (!resp.isVoteGranted() && resp.getTerm() > this.currentTerm) {
+				this.currentTerm = resp.getTerm();
+				this.setRole(Role.FOLLOWER);
+				return;
 			}
+			if(this.getRole().equals(Role.LEADER))
+				return;
+			if (resp.isVoteGranted()) 
+				voters.add(resp.getIdAddress());
 			// Controllo voti
 			if (Math.ceil(((double) this.addresses.size() + 1) / 2) <= (this.voters.size() + 1)) {
 				this.setRole(Role.LEADER);
 			}
 			return;
 		}
+		// Le ricevono candidate e follower (?)
 		if (receivedValue instanceof AppendRequest) {
 			AppendRequest resp = (AppendRequest) receivedValue;
-			if (resp.getEntry() == null) {
-				// heartbeat
-				this.votedFor = null;
-				this.voters.clear();
-				if (resp.getPrevLogTerm() >= this.currentTerm) {
-					this.setRole(Role.FOLLOWER);
+			// heartbeat
+			boolean b = false;
+			if (resp.getEntry() == null) {		
+				if (resp.getTerm() >= this.currentTerm) {
+					this.votedFor = null;
+					this.voters.clear();
+					b = true;
+					this.currentTerm = resp.getTerm();
+					if(this.role != Role.FOLLOWER)
+						this.setRole(Role.FOLLOWER);
+					else{
+						this.setElectionTimeout();
+					}
 				}
+				
+				AppendResponse hResponse = new AppendResponse(this.currentTerm, b);
+				this.sendMessage(hResponse, resp.getLeaderId());
 			}
 			return;
+		}
+		// Le riceve solo il leader
+		if (receivedValue instanceof AppendResponse){
+			AppendResponse response = (AppendResponse) receivedValue;
+			// Se ho ricevuto un false cado e torno follower
+			if(!response.isSuccess()){
+				this.setRole(Role.FOLLOWER);
+			}
 		}
 	}
 
@@ -183,15 +213,19 @@ public class Node implements Runnable {
 
 	// Getter/Setter
 	public void setRole(Role role) {
-		System.out.println(this.id + " change role to " + getRole());
+		System.out.println(this.id + " change role to " + role.toString());
 		this.voters.clear();
 		this.role = role;
 		switch (role) {
 		case FOLLOWER:
 			this.setElectionTimeout();
+			this.stopHeartbeats();
+			System.out.println("++ follower" + this.getId());
 			break;
 		case CANDIDATE:
+			System.out.println("-- candidate" + this.getId());
 			this.currentTerm++;
+			this.voters.clear();
 			this.votedFor = this.myFullAddress;
 			this.setElectionTimeout();
 			System.out.println(id + " " + role.toString() + " mando request for votes");
@@ -201,6 +235,7 @@ public class Node implements Runnable {
 		case LEADER:
 			// heartbeat
 			// Disattivo timeoutElection
+			System.out.println("++ leader" + this.getId());
 			this.electionTimer.cancel();
 			this.nextIndex.clear();
 			for (String nodeAd : this.addresses) {
