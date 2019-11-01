@@ -63,6 +63,12 @@ public class Node implements Runnable {
 		this.timer.schedule(this.electionTask, this.electionTimeout);
 	}
 	
+	public void setElectionTimeout(int electionTimeout) {
+		this.stopElection();
+		this.electionTask = new ElectionTask(this);
+		this.timer.schedule(this.electionTask, electionTimeout);
+	}
+	
 	private void stopElection(){
 		this.electionTask.cancel();
 	}
@@ -199,6 +205,7 @@ public class Node implements Runnable {
 	// Getter/Setter
 	public void setRole(Role role) {
 		this.voters.clear();
+		System.out.println(this.myFullAddress + " changes role to " + role.toString());
 		this.role = role;
 		switch (role) {
 		case FOLLOWER:
