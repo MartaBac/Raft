@@ -32,7 +32,7 @@ public class Client implements Runnable {
             this.address = InetAddress.getLocalHost().getHostAddress();
             this.fullAddress = this.address+":"+this.port;
         } catch (IOException ex) {
-            System.out.println("Client error");
+            System.err.println("Client error");
             ex.printStackTrace();
             exit(-1);
         }
@@ -48,16 +48,24 @@ public class Client implements Runnable {
                 is = s.getInputStream();
                 ois = new ObjectInputStream(is);
                 Msg receivedValue = (Msg) ois.readObject();
-                //this.client.processMessage(receivedValue);
+                this.processMessage(receivedValue);
                 s.close();
             } catch (Exception ex) {
-                System.out.println("Client error while receiving message");
+                System.err.println("Client error while receiving message");
                 ex.printStackTrace();
             }
         }
     }
     
-    public boolean get(String address) {
+    private void processMessage(Msg receivedValue) {
+		if (receivedValue instanceof ClientResponse) {
+			Entry value = ((ClientResponse)receivedValue).getParams();
+			System.out.println(value.getCommand().toString());
+		}
+		
+	}
+
+	public boolean get(String address) {
     	ClientRequest msg = new ClientRequest("get", this.fullAddress);
     	if(this.sendMessage(address, msg))
     		return true;
@@ -80,7 +88,7 @@ public class Client implements Runnable {
 	    	sendToAddr = split[0];
 	    	sendToPort = Integer.parseInt(split[1]);
     	} catch (Exception e) {
-    		System.out.println("Error: invalid address (valid format ipAddr:port)");
+    		System.err.println("Error: invalid address (valid format ipAddr:port)");
 			return false;
     	}
 		OutputStream os = null;
@@ -95,7 +103,7 @@ public class Client implements Runnable {
 			oos.flush();
 			s.close();
 		} catch (Exception ex) {
-			System.out.println("Error: sending message - host unavailable");
+			System.err.println("Error: sending message - host unavailable");
 			return false;
 		}
 		return true;   	

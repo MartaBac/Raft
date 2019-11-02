@@ -1,4 +1,7 @@
 package node;
+
+import java.io.Serializable;
+
 /**
  * Entry, classe che rappresenta un elemento del log.
  * Consiste in un comando da applicare alla state machine e il term associato.
@@ -6,7 +9,7 @@ package node;
  * @author marta
  *
  */
-public class Entry {
+public class Entry implements Serializable {
 	private Object command;
 	private int term;
 	

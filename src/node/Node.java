@@ -172,9 +172,14 @@ public class Node implements Runnable {
 			// TODO: per ora rispondo un valore a caso, il raft prevede altri passaggi
 			switch(response.getRequest()) {
 			case "get":
-				// TODO: controllare se sono leader o no
-				ClientResponse resp = new ClientResponse(new Entry("TEST"));
-				this.sendMessage(resp, response.getAddress());
+				if (this.role.equals(role.LEADER)) {
+					ClientResponse resp = new ClientResponse(new Entry("TEST"));
+					this.sendMessage(resp, response.getAddress());
+				} else {
+					// Rispondo con l'indirizzo del leader
+					ClientResponse resp = new ClientResponse(new Entry("Not leader"));
+					this.sendMessage(resp, response.getAddress());
+				}
 				break;
 			}
 		}

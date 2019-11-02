@@ -14,13 +14,13 @@ public class ClientLauncher {
 		String line;
 		do {
 			line = "";
-			System.out.print("Command: ");
+			System.out.println("Command: ");
 			try {
 				InputStreamReader reader = new InputStreamReader(System.in);
 				BufferedReader buffer = new BufferedReader(reader);
 				line = buffer.readLine();
 			} catch (Exception e) {
-				System.out.println("Error while reading command");
+				System.err.println("Error while reading command");
 				System.exit(-1);
 			}
 			String[] commands = line.split(" ");
@@ -32,7 +32,7 @@ public class ClientLauncher {
 				client.set(commands[1], new Entry(commands[2]));
 				break;
 			default:
-				System.out.println("Unrecognized command");
+				System.err.println("Unrecognized command");
 				break;
 			}
 		} while (!line.equals("quit"));
