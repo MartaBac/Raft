@@ -29,8 +29,8 @@ public class Node implements Runnable {
 	// Raft variables
 	private Role role = Role.FOLLOWER;
 	private Log log = new Log();
-	
-	private Timer timer = new Timer("timer"+this.id);
+
+	private Timer timer = new Timer("timer" + this.id);
 	private ElectionTask electionTask = new ElectionTask(this);
 	private HeartbeatTask heartbeatTask = new HeartbeatTask(this);
 	private long electionTimeout = 0;
@@ -62,27 +62,27 @@ public class Node implements Runnable {
 		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - Variables.minRet)) + Variables.minRet;
 		this.timer.schedule(this.electionTask, this.electionTimeout);
 	}
-	
+
 	public void setElectionTimeout(int electionTimeout) {
 		this.stopElection();
 		this.electionTask = new ElectionTask(this);
 		this.timer.schedule(this.electionTask, electionTimeout);
 	}
-	
-	private void stopElection(){
+
+	private void stopElection() {
 		this.electionTask.cancel();
 	}
 
 	private void startHeartbeats() {
-		AppendRequest heartbeat = new AppendRequest(this.currentTerm, this.myFullAddress, this.log.getDimension(), this.currentTerm - 1,
-				this.commitIndex);
+		AppendRequest heartbeat = new AppendRequest(this.currentTerm, this.myFullAddress, this.log.getDimension(),
+				this.currentTerm - 1, this.commitIndex);
 		this.sendBroadcast(heartbeat);
 		this.stopHeartbeats();
 		this.heartbeatTask = new HeartbeatTask(this);
 		this.timer.schedule(this.heartbeatTask, 0, this.heartbeatTimeout);
 	}
-	
-	public void stopHeartbeats(){
+
+	public void stopHeartbeats() {
 		this.heartbeatTask.cancel();
 	}
 
@@ -99,15 +99,15 @@ public class Node implements Runnable {
 		if (receivedValue instanceof VoteRequest) {
 			VoteRequest resp = (VoteRequest) receivedValue;
 
-			if(!this.role.equals(Role.LEADER))
+			if (!this.role.equals(Role.LEADER))
 				this.setElectionTimeout();
 
 			// Controllo se votare per lui o no
-			if (resp.getTerm() >=  this.currentTerm) {
+			if (resp.getTerm() >= this.currentTerm) {
 				// TODO: Check parametri
 				// aggiorno term???
-				if ((this.votedFor == null || this.votedFor.equals(resp.getIdAddress()))){
-						//&& resp.getLastLogIndex() >= this.lastApplied) {
+				if ((this.votedFor == null || this.votedFor.equals(resp.getIdAddress()))) {
+					// && resp.getLastLogIndex() >= this.lastApplied) {
 					this.sendMessage(new VoteResponse(this.currentTerm, true, this.myFullAddress), resp.getIdAddress());
 					this.votedFor = resp.getIdAddress();
 					return;
@@ -118,15 +118,15 @@ public class Node implements Runnable {
 		}
 		if (receivedValue instanceof VoteResponse) {
 			VoteResponse resp = (VoteResponse) receivedValue;
-			
+
 			if (!resp.isVoteGranted() && resp.getTerm() > this.currentTerm) {
 				this.currentTerm = resp.getTerm();
 				this.setRole(Role.FOLLOWER);
 				return;
 			}
-			if(this.getRole().equals(Role.LEADER))
+			if (this.getRole().equals(Role.LEADER))
 				return;
-			if (resp.isVoteGranted()) 
+			if (resp.isVoteGranted())
 				voters.add(resp.getIdAddress());
 			// Controllo voti
 			if (Math.ceil(((double) this.addresses.size() + 1) / 2) <= (this.voters.size() + 1)) {
@@ -139,47 +139,56 @@ public class Node implements Runnable {
 			AppendRequest resp = (AppendRequest) receivedValue;
 			// heartbeat
 			boolean b = false;
-			if (resp.getEntry() == null) {		
+			if (resp.getEntry() == null) {
 				if (resp.getTerm() >= this.currentTerm) {
 					this.votedFor = null;
 					this.voters.clear();
 					b = true;
 					this.currentTerm = resp.getTerm();
-					if(this.role != Role.FOLLOWER)
+					if (this.role != Role.FOLLOWER)
 						this.setRole(Role.FOLLOWER);
-					else{
+					else {
 						this.setElectionTimeout();
 					}
 				}
-				
+
 				AppendResponse hResponse = new AppendResponse(this.currentTerm, b);
 				this.sendMessage(hResponse, resp.getLeaderId());
 			}
 			return;
 		}
 		// Le riceve solo il leader
-		if (receivedValue instanceof AppendResponse){
+		if (receivedValue instanceof AppendResponse) {
 			AppendResponse response = (AppendResponse) receivedValue;
 			// Se ho ricevuto un false cado e torno follower
-			if(!response.isSuccess()){
+			if (!response.isSuccess()) {
 				this.setRole(Role.FOLLOWER);
 			}
 		}
-		
+
 		// TODO: client response
-		if (receivedValue instanceof ClientRequest){
+		if (receivedValue instanceof ClientRequest) {
 			ClientRequest response = (ClientRequest) receivedValue;
-			// TODO: per ora rispondo un valore a caso, il raft prevede altri passaggi
-			switch(response.getRequest()) {
+			if (!this.role.equals(role.LEADER)) {
+				// Rispondo con l'indirizzo del leader
+				ClientResponse resp = new ClientResponse(new Entry("Not leader"));
+				this.sendMessage(resp, response.getAddress());
+				return;
+			}
+			switch (response.getRequest()) {
 			case "get":
-				if (this.role.equals(role.LEADER)) {
-					ClientResponse resp = new ClientResponse(new Entry("TEST"));
-					this.sendMessage(resp, response.getAddress());
-				} else {
-					// Rispondo con l'indirizzo del leader
-					ClientResponse resp = new ClientResponse(new Entry("Not leader"));
-					this.sendMessage(resp, response.getAddress());
-				}
+				// TODO: per ora rispondo un valore a caso, il raft prevede altri passaggi
+				ClientResponse resp = new ClientResponse(new Entry("TEST"));
+				this.sendMessage(resp, response.getAddress());
+				break;
+			case "set":
+				// TODO: per ora appendo e basta, poi bisogna rispondere quando è stata
+				// committata nel log
+				// o rifiutata
+				this.log.appendEntry(response.getParams());
+				break;
+			default:
+				// TODO: rifiutare clientReq
 				break;
 			}
 		}
@@ -212,7 +221,7 @@ public class Node implements Runnable {
 			this.sendMessage(message, nodeAddress);
 		}
 	}
-	
+
 	public boolean addAddress(String address) {
 		// Controllo che non mi sia passato il mio stesso indirizzo
 		if (address.equals(this.address + ":" + this.port))
@@ -293,22 +302,21 @@ public class Node implements Runnable {
 	public void setAddress(String address) {
 		this.address = address;
 	}
-	
+
 	public int getCurrentTerm() {
 		return this.currentTerm;
 	}
-	
+
 	public Log getLog() {
 		return this.log;
 	}
-	
+
 	public int getCommitIndex() {
 		return this.commitIndex;
 	}
-	
-	public void setHeartbeatTimeout(int time){
+
+	public void setHeartbeatTimeout(int time) {
 		this.heartbeatTimeout = time;
 	}
-
 
 }

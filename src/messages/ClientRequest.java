@@ -29,4 +29,9 @@ public class ClientRequest extends Msg {
 	public String getAddress() {
 		return this.address;
 	}
+	
+	public Entry getParams() {
+		return this.params;
+	}
 }
+
