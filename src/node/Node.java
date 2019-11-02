@@ -165,6 +165,19 @@ public class Node implements Runnable {
 				this.setRole(Role.FOLLOWER);
 			}
 		}
+		
+		// TODO: client response
+		if (receivedValue instanceof ClientRequest){
+			ClientRequest response = (ClientRequest) receivedValue;
+			// TODO: per ora rispondo un valore a caso, il raft prevede altri passaggi
+			switch(response.getRequest()) {
+			case "get":
+				// TODO: controllare se sono leader o no
+				ClientResponse resp = new ClientResponse(new Entry("TEST"));
+				this.sendMessage(resp, response.getAddress());
+				break;
+			}
+		}
 	}
 
 	private boolean sendMessage(Msg msg, String address) {

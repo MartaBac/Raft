@@ -10,6 +10,10 @@ public class Entry {
 	private Object command;
 	private int term;
 	
+	public Entry(Object command) {
+		this.command = command;
+	}
+	
 	public Entry(Object command, int term){
 		this.command=command;
 		this.term=term;
@@ -21,6 +25,10 @@ public class Entry {
 
 	public int getTerm() {
 		return term;
+	}
+	
+	public String toString() {
+		return command.toString();
 	}
 	
 }
