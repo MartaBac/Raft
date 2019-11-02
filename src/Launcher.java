@@ -50,44 +50,10 @@ public class Launcher {
 			// Gestione dati acquisiti dalla scrittura su console
 			Scanner in = new Scanner(System.in);
 			String s = in.nextLine();
-
-			String[] split = s.split(" ");
-			switch (split[0]) {
-			case "set":
-				switch (split[1]) {
-				case "electionTimeout":
-					if (split.length >= 4 && isNumeric(split[3]) && listaNodi.containsKey(ip + ":" + split[2])) {
-						System.out.println("setting election timeout of " + split[2] + " to " + split[3]);
-						listaNodi.get(ip + ":" + split[2]).setElectionTimeout(Integer.valueOf(split[3]));
-					} else {
-						System.out.println("Error: invalid input in election timeout");
-					}
-					break;
-				
-				default:
-					System.out.println("Error: invalid input set");
-					break;
-				}
-				break;
-			case "stop" :
-				switch (split[1]) {
-				case "heartbeats":
-					Iterator<Map.Entry<String, Node>> ite = listaNodi.entrySet().iterator();
-					while (ite.hasNext()) {
-					    Node n = ite.next().getValue();
-					    if(n.getRole().equals(Role.LEADER))
-					    	n.stopHeartbeats();
-					}
-					break;
-				default:
-					break;
-			}
-				break;
-			default:
-				System.out.println("Error: invalid input");
-				break;
-			}
-
+			
+			// Se viene inserito qualcosa da tastiera
+			commandTranslation(s);
+			
 			int leader = 0;
 			for (Map.Entry<String, Node> entry : listaNodi.entrySet()) {
 				String key = entry.getKey();
@@ -109,5 +75,53 @@ public class Launcher {
 			return false;
 		}
 		return true;
+	}
+	
+	/**
+	 * Funzione per smistare/tradurre in metodi ciò che l'utente scrive in console.
+	 * Operazioni supportate:
+	 * 'set electionTimeout portNumber int' <- con portNumber una delle port stampate 
+	 * 		dal pogramma e int un intero a cui settare il timeout(in ms)
+	 * 'stop heartbeats' <- per far smettere al leader di mandare heartbeats, ciò porterò
+	 * 		al cambio di leader
+	 * @param s Stringa inserita dall'utente
+	 */
+	public static void commandTranslation(String s){
+		String[] split = s.split(" ");
+		switch (split[0]) {
+		case "set":
+			switch (split[1]) {
+			case "electionTimeout":
+				if (split.length >= 4 && isNumeric(split[3]) && listaNodi.containsKey(ip + ":" + split[2])) {
+					System.out.println("setting election timeout of " + split[2] + " to " + split[3]);
+					listaNodi.get(ip + ":" + split[2]).setElectionTimeout(Integer.valueOf(split[3]));
+				} else {
+					System.err.println("Error: invalid input in election timeout");
+				}
+				break;
+			
+			default:
+				System.err.println("Error: invalid input set");
+				break;
+			}
+			break;
+		case "stop" :
+			switch (split[1]) {
+			case "heartbeats":
+				Iterator<Map.Entry<String, Node>> ite = listaNodi.entrySet().iterator();
+				while (ite.hasNext()) {
+				    Node n = ite.next().getValue();
+				    if(n.getRole().equals(Role.LEADER))
+				    	n.stopHeartbeats();
+				}
+				break;
+			default:
+				break;
+		}
+			break;
+		default:
+			System.err.println("Error: invalid input");
+			break;
+		}
 	}
 }
