@@ -63,11 +63,25 @@ public class Launcher {
 						System.out.println("Error: invalid input in election timeout");
 					}
 					break;
+				
 				default:
-					System.out.println("Error: invalid input");
+					System.out.println("Error: invalid input set");
 					break;
 				}
-
+				break;
+			case "stop" :
+				switch (split[1]) {
+				case "heartbeats":
+					Iterator<Map.Entry<String, Node>> ite = listaNodi.entrySet().iterator();
+					while (ite.hasNext()) {
+					    Node n = ite.next().getValue();
+					    if(n.getRole().equals(Role.LEADER))
+					    	n.stopHeartbeats();
+					}
+					break;
+				default:
+					break;
+			}
 				break;
 			default:
 				System.out.println("Error: invalid input");
