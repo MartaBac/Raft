@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +45,7 @@ public class Node implements Runnable {
 	private int lastApplied = 0; // indice dell'ultimo log applicato alla SM
 	private HashMap<String, Integer> nextIndex = new HashMap<String, Integer>();
 	private StateMachine sm = new StateMachine();
+	private String leaderId = null;
 
 	// Costruttori
 	public Node(int id, String address) {
@@ -106,14 +108,16 @@ public class Node implements Runnable {
 			if (resp.getTerm() >= this.currentTerm) {
 				// TODO: Check parametri
 				// aggiorno term???
-				if ((this.votedFor == null || this.votedFor.equals(resp.getIdAddress()))) {
+				if ((this.votedFor == null || this.votedFor.equals(resp.getSender()))) {
 					// && resp.getLastLogIndex() >= this.lastApplied) {
-					this.sendMessage(new VoteResponse(this.currentTerm, true, this.myFullAddress), resp.getIdAddress());
-					this.votedFor = resp.getIdAddress();
+					this.sendMessage(new VoteResponse(this.currentTerm, true, this.myFullAddress), 
+							resp.getSender());
+					this.votedFor = resp.getSender();
 					return;
 				}
 			}
-			this.sendMessage(new VoteResponse(this.currentTerm, false, this.myFullAddress), resp.getIdAddress());
+			this.sendMessage(new VoteResponse(this.currentTerm, false, this.myFullAddress), 
+					resp.getSender());
 			return;
 		}
 		if (receivedValue instanceof VoteResponse) {
@@ -127,7 +131,7 @@ public class Node implements Runnable {
 			if (this.getRole().equals(Role.LEADER))
 				return;
 			if (resp.isVoteGranted())
-				voters.add(resp.getIdAddress());
+				voters.add(resp.getSender());
 			// Controllo voti
 			if (Math.ceil(((double) this.addresses.size() + 1) / 2) <= (this.voters.size() + 1)) {
 				this.setRole(Role.LEADER);
@@ -137,6 +141,7 @@ public class Node implements Runnable {
 		// Le ricevono candidate e follower (?)
 		if (receivedValue instanceof AppendRequest) {
 			AppendRequest resp = (AppendRequest) receivedValue;
+			this.leaderId  = resp.getLeaderId();
 			// heartbeat
 			boolean b = false;
 			if (resp.getEntry() == null) {
@@ -152,16 +157,66 @@ public class Node implements Runnable {
 					}
 				}
 
-				AppendResponse hResponse = new AppendResponse(this.currentTerm, b);
+				AppendResponse hResponse = new AppendResponse(this.currentTerm, b, 
+						this.myFullAddress);
 				this.sendMessage(hResponse, resp.getLeaderId());
+			}
+			// AppendRequest ricevute dal leader
+			else{
+				AppendResponse appResponse;
+				if(resp.getTerm()<this.currentTerm ){
+					// rispondo falso
+					appResponse = new AppendResponse(this.currentTerm,false, 
+							this.myFullAddress);
+					this.sendMessage(appResponse, resp.getLeaderId());
+					return;
+				}
+				Entry e = this.log.getEntry(resp.getPrevLogIndex());
+				if(e == null){
+					// rispondo false
+					appResponse = new AppendResponse(this.currentTerm,false, 
+							this.myFullAddress);
+					this.sendMessage(appResponse, resp.getLeaderId());
+					return;
+				}
+				if(e.getTerm()!= resp.getPrevLogTerm()){
+				// rispondo false e sostituisco
+					this.log.deleteFrom(resp.getPrevLogIndex());
+					// risposta false
+					appResponse = new AppendResponse(this.currentTerm,false,
+							this.myFullAddress);
+					this.sendMessage(appResponse, resp.getLeaderId());
+					return;
+				}
+				// rispondo true dopo aver fatto l'append
+				this.log.appendEntries(resp.getEntry());
+				appResponse = new AppendResponse(this.currentTerm,true,
+						this.myFullAddress);
+				this.sendMessage(appResponse, resp.getLeaderId());
 			}
 			return;
 		}
 		// Le riceve solo il leader
 		if (receivedValue instanceof AppendResponse) {
 			AppendResponse response = (AppendResponse) receivedValue;
-			// Se ho ricevuto un false cado e torno follower
-			if (!response.isSuccess()) {
+			if(response.isSuccess()){		
+				this.nextIndex.put(response.getSender(), this.log.getDimension() - 1);
+				// Controllo cosa posso committare
+				
+//				int count = 1; // da 1 perché conto il leader
+//				for(Integer value: this.nextIndex.values()) {
+//					  if (value>=(this.log.getDimension()-1)) {
+//					    count++;
+//					  }
+//					}
+//				if(count>= ((this.addresses.size()+1)/2)){
+//					//commit
+//					
+//				}
+			}
+			
+			
+			if (response.getTerm() > this.currentTerm && !response.isSuccess()) {
 				this.setRole(Role.FOLLOWER);
 			}
 		}
@@ -185,7 +240,20 @@ public class Node implements Runnable {
 				// TODO: per ora appendo e basta, poi bisogna rispondere quando è stata
 				// committata nel log
 				// o rifiutata
-				this.log.appendEntry(response.getParams());
+				if(!this.log.appendEntry(response.getParams())){
+					// rispondi false
+					break;
+				}
+				
+				AppendRequest req;
+				// Invio delle appendRequest ai follower
+				for(String toFollower : this.addresses){
+					int indexF = this.nextIndex.get(toFollower);
+					req = new AppendRequest(this.currentTerm, this.myFullAddress,
+							indexF , this.log.getEntry(indexF).getTerm(), 
+							this.log.getEntries(indexF), this.commitIndex);
+					this.sendMessage(req, toFollower);
+				}
 				break;
 			default:
 				// TODO: rifiutare clientReq

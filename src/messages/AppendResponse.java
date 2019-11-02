@@ -6,9 +6,11 @@ public class AppendResponse extends Msg {
 	 */
 	private static final long serialVersionUID = 1L;
 	private boolean success;
-	public AppendResponse(int term, boolean success) {
+	
+	public AppendResponse(int term, boolean success, String sender) {
 		this.term = term;
 		this.success = success;
+		this.sender = sender;
 	}
 	public boolean isSuccess() {
 		return success;
@@ -16,6 +18,10 @@ public class AppendResponse extends Msg {
 	
 	public int getTerm() {
 		return this.term;
+	}
+	
+	public String getSender(){
+		return this.sender;
 	}
 	
 	@Override

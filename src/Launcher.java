@@ -7,7 +7,10 @@ import java.util.Scanner;
 
 import node.Node;
 import node.Role;
-
+/**
+ * Implementazione meccanismo di leader election del Raft protocol
+ * 
+ */
 public class Launcher {
 	private static final int nNodes = 5;
 	private static String ip = null;
@@ -68,6 +71,11 @@ public class Launcher {
 		}
 	}
 
+	/**
+	 * 
+	 * @param strNum
+	 * @return true se la String rappresenta un numero in cifre
+	 */
 	public static boolean isNumeric(String strNum) {
 		try {
 			double d = Double.parseDouble(strNum);

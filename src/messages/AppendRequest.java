@@ -1,5 +1,7 @@
 package messages;
 
+import java.util.ArrayList;
+
 import node.Entry;
 
 public class AppendRequest extends Msg {
@@ -12,18 +14,17 @@ public class AppendRequest extends Msg {
 	private String leaderId;
 	private int prevLogIndex;
 	private int prevLogTerm;
-	private Entry entry;
+	private ArrayList<Entry> entry;
 	private int leaderCommit;
 	
-	public AppendRequest(int term, String leaderId, int prevLogIndex, int prevLogTerm, Entry entry,
-			int leaderCommit){
+	public AppendRequest(int term, String leaderId, int prevLogIndex, int prevLogTerm, 
+			ArrayList<Entry> entry, int leaderCommit){
 		this.leaderId = leaderId;
 		this.prevLogIndex = prevLogIndex;
 		this.prevLogTerm = prevLogTerm;
 		this.leaderCommit = leaderCommit;
 		this.entry = entry;
-		this.term = term;
-		
+		this.term = term;	
 	}
 	/**
 	 * Heartbeat 
@@ -59,10 +60,10 @@ public class AppendRequest extends Msg {
 	public void setPrevLogTerm(int prevLogTerm) {
 		this.prevLogTerm = prevLogTerm;
 	}
-	public Entry getEntry() {
+	public ArrayList<Entry> getEntry() {
 		return entry;
 	}
-	public void setEntry(Entry entry) {
+	public void setEntry(ArrayList<Entry> entry) {
 		this.entry = entry;
 	}
 	public int getLeaderCommit() {

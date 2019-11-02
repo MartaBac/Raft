@@ -5,13 +5,12 @@ public class VoteRequest extends Msg {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private String idAddress;
 	private int lastLogIndex;
 	private int lastLogTerm;
 
-	public VoteRequest(int term, String idAddress, int lastLogIndex, int lastLogTerm){
+	public VoteRequest(int term, String sender, int lastLogIndex, int lastLogTerm){
 		this.term = term;
-		this.idAddress = idAddress;
+		this.sender = sender;
 		this.lastLogIndex = lastLogIndex;
 		this.lastLogTerm = lastLogTerm;
 	}
@@ -20,8 +19,8 @@ public class VoteRequest extends Msg {
 		return term;
 	}
 
-	public String getIdAddress() {
-		return idAddress;
+	public String getSender() {
+		return sender;
 	}
 
 	public int getLastLogIndex() {

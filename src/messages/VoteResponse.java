@@ -6,12 +6,11 @@ public class VoteResponse extends Msg {
 	 */
 	private static final long serialVersionUID = 1L;
 	private boolean voteGranted;
-	private String idAddress;
 	
-	public VoteResponse(int term, boolean voteGranted, String idAddress){
+	public VoteResponse(int term, boolean voteGranted, String sender){
 		this.term = term;
 		this.voteGranted = voteGranted;
-		this.idAddress = idAddress;
+		this.sender = sender;
 	}
 
 	public int getTerm() {
@@ -26,7 +25,7 @@ public class VoteResponse extends Msg {
 		return "=> " + this.term + " " + String.valueOf(this.voteGranted);
 	}
 
-	public String getIdAddress() {
-		return idAddress;
+	public String getSender() {
+		return sender;
 	}
 }
