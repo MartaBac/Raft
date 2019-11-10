@@ -31,6 +31,9 @@ public class ClientLauncher {
 			case "set":
 				client.set(commands[1], new Entry(commands[2]));
 				break;
+			case "ADD":
+				client.send(commands[2], new Entry(commands[0]+commands[1]));
+				break;
 			default:
 				System.err.println("Unrecognized command");
 				break;

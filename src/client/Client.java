@@ -79,6 +79,13 @@ public class Client implements Runnable {
     	return false;
     }
     
+    public boolean send(String address, Entry value) {
+    	ClientRequest msg = new ClientRequest("set", this.fullAddress, value);
+    	if(this.sendMessage(address, msg))
+    		return true;
+    	return false;
+    }
+    
     public boolean sendMessage(String address, ClientRequest msg) {
     	String[] split;
 		String sendToAddr;

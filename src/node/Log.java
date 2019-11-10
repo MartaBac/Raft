@@ -24,7 +24,7 @@ public class Log {
 	}
 	
 	public Entry getEntry(int i){
-		if(entries.size()>= i)
+		if(entries.size() >= i+1)
 			return entries.get(i);
 		else
 			return null;
@@ -35,7 +35,7 @@ public class Log {
 	}
 	
 	public ArrayList<Entry> getEntries(int i){
-		return (ArrayList<Entry>) entries.subList(i, entries.size());
+		return new ArrayList<Entry>(entries.subList(i, entries.size()));
 	}
 	
 	public void deleteFrom(int i){
