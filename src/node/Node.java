@@ -58,6 +58,7 @@ public class Node implements Runnable {
 	}
 
 	private void setElectionTimeout() {
+		
 		this.stopElection();
 		this.electionTask = new ElectionTask(this);
 		double randomDouble = Math.random();
@@ -98,11 +99,18 @@ public class Node implements Runnable {
 	}
 
 	public void processMessage(Msg receivedValue) {
+		
 		if (receivedValue instanceof VoteRequest) {
 			VoteRequest resp = (VoteRequest) receivedValue;
-
-			if (!this.role.equals(Role.LEADER))
+			// Controllo che se sono candidato e mi arriva un term più alto torno follower
+			if(!this.role.equals(Role.FOLLOWER)) {
+				if (this.currentTerm < resp.getTerm()) {
+					this.setRole(Role.FOLLOWER);
+				}
+			} else {
+				// Sono follower
 				this.setElectionTimeout();
+			}
 
 			// Controllo se votare per lui o no
 			if (resp.getTerm() >= this.currentTerm) {
@@ -200,7 +208,7 @@ public class Node implements Runnable {
 		if (receivedValue instanceof AppendResponse) {
 			AppendResponse response = (AppendResponse) receivedValue;
 			if(response.isSuccess()){		
-				this.nextIndex.put(response.getSender(), this.log.getDimension() - 1);
+				this.nextIndex.put(response.getSender(), this.log.getDimension());
 				// Controllo cosa posso committare
 				
 //				int count = 1; // da 1 perché conto il leader
@@ -213,11 +221,23 @@ public class Node implements Runnable {
 //					//commit
 //					
 //				}
-			}
-			
-			
-			if (response.getTerm() > this.currentTerm && !response.isSuccess()) {
-				this.setRole(Role.FOLLOWER);
+			} else {
+				if (response.getTerm() > this.currentTerm) {
+					this.currentTerm = response.getTerm();
+					this.setRole(Role.FOLLOWER);
+				} else {
+					// Decremento nextIndex per quel follower perchè mi ha risposto
+					// false nonostante fosse nel termine giusto
+					int decrementedIndex = this.nextIndex.get(response.getSender())-1;
+					this.nextIndex.put(response.getSender(), 
+							decrementedIndex);
+					// Mando appendRequest usando il nuovo index
+					AppendRequest req = new AppendRequest(this.currentTerm, this.myFullAddress,
+							decrementedIndex , this.log.getEntry(decrementedIndex).getTerm(), 
+							this.log.getEntries(decrementedIndex), this.commitIndex);
+					this.sendMessage(req, response.getSender());
+					
+				}
 			}
 		}
 
