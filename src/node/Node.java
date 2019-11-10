@@ -150,6 +150,16 @@ public class Node implements Runnable {
 		if (receivedValue instanceof AppendRequest) {
 			AppendRequest resp = (AppendRequest) receivedValue;
 			this.leaderId  = resp.getLeaderId();
+			if(resp.getLeaderCommit()>this.commitIndex){
+				// sono state committate delle entries
+				if(this.log.getEntry(resp.getPrevLogIndex()).getTerm() == 
+						resp.getPrevLogTerm()){
+					// To check
+					this.commitIndex = resp.getLeaderCommit();
+					int ind = Math.min(resp.getLeaderCommit(), resp.getPrevLogIndex());
+					this.applyEntries(this.lastApplied, ind);
+				}
+			}
 			// heartbeat
 			boolean b = false;
 			if (resp.getEntry() == null) {
@@ -211,16 +221,22 @@ public class Node implements Runnable {
 				this.nextIndex.put(response.getSender(), this.log.getDimension());
 				// Controllo cosa posso committare
 				
-//				int count = 1; // da 1 perché conto il leader
-//				for(Integer value: this.nextIndex.values()) {
-//					  if (value>=(this.log.getDimension()-1)) {
-//					    count++;
-//					  }
-//					}
-//				if(count>= ((this.addresses.size()+1)/2)){
-//					//commit
-//					
-//				}
+				ArrayList<Integer> comCount = new ArrayList<Integer>();
+				for(Integer i: this.nextIndex.values()){
+					comCount.add(i-1);
+				}
+				Collections.sort(comCount, Collections.reverseOrder());
+				// La maggioranza sarebbe  + 1 ma sto cercando l'indice -> farei +1 -1
+				int indexMajority = Math.floorDiv(comCount.size() + 1 , 2);
+				// Cerco il maggiore committabile
+				int committable = comCount.get(indexMajority);
+				if(committable > this.commitIndex){
+					// committo
+					this.commitIndex = committable;
+					// applico state machine
+					this.applyEntries(this.lastApplied, committable);
+				}
+				
 			} else {
 				if (response.getTerm() > this.currentTerm) {
 					this.currentTerm = response.getTerm();
@@ -280,6 +296,22 @@ public class Node implements Runnable {
 				break;
 			}
 		}
+	}
+
+	/**
+	 * Chiama la funzione per applicare le entry alla state machine per ogni entry nel log
+	 * che non è stata ancora applicata ma è stata committata.
+	 * 
+	 * @param lastCommitIndex rappresenta l'ultima entry applicata alla sm
+	 * @param committable è l'indice dell'ultima entry da applicare
+	 */
+	private void applyEntries(int lastCommitIndex, int committable) {
+		// applico alla state machine
+		for( int i = lastCommitIndex+1; i <= committable; i++){
+			Entry e = this.log.getEntry(i);
+			this.sm.applyEntry(e);
+			this.lastApplied = i;
+		}		
 	}
 
 	private boolean sendMessage(Msg msg, String address) {
