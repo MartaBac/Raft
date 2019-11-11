@@ -39,7 +39,7 @@ public class Node implements Runnable {
 	private String votedFor = null; // id nodo per cui ha votato
 	private int currentTerm = 0;
 	private int commitIndex = -1; // indice > fra i log, potrebbe essere ancora da committare
-	private int lastApplied = 0; // indice dell'ultimo log applicato alla SM
+	private int lastApplied = -1; // indice dell'ultimo log applicato alla SM
 	private HashMap<String, Integer> nextIndex = new HashMap<String, Integer>();
 	private StateMachine sm = new StateMachine();
 	private String leaderId = null;
@@ -152,9 +152,10 @@ public class Node implements Runnable {
 				if(this.log.getEntry(resp.getPrevLogIndex()).getTerm() == 
 						resp.getPrevLogTerm()){
 					// To check
+					System.out.println("LEADER COMMIT 2: "+this.log.getEntry(resp.getPrevLogIndex()).getTerm());
 					this.commitIndex = resp.getLeaderCommit();
-					int ind = Math.min(resp.getLeaderCommit(), resp.getPrevLogIndex());
-					this.applyEntries(this.lastApplied, ind);
+					//int ind = Math.min(resp.getLeaderCommit(), resp.getPrevLogIndex());
+					this.applyEntries(this.lastApplied, this.commitIndex);
 				}
 			}
 			// heartbeat
@@ -170,6 +171,7 @@ public class Node implements Runnable {
 					else {
 						this.setElectionTimeout();
 					}
+					// Controllo se committare 
 				}
 
 				AppendResponse hResponse = new AppendResponse(this.currentTerm, b, 
@@ -229,7 +231,7 @@ public class Node implements Runnable {
 				// Cerco il maggiore committabile
 				int committable = comCount.get(indexMajority);
 				if(committable > this.commitIndex){
-					System.out.println("commit");
+					System.out.println("commit committable "+ committable);
 					// committo
 					this.commitIndex = committable;
 					// applico state machine
@@ -309,6 +311,7 @@ public class Node implements Runnable {
 	 * @param committable è l'indice dell'ultima entry da applicare
 	 */
 	private void applyEntries(int lastCommitIndex, int committable) {
+		System.out.println("Last commit index: "+lastCommitIndex+ " Committable "+ committable);
 		// applico alla state machine
 		for( int i = lastCommitIndex+1; i <= committable; i++){
 			Entry e = this.log.getEntry(i);
@@ -317,7 +320,7 @@ public class Node implements Runnable {
 		}		
 	}
 
-	private boolean sendMessage(Msg msg, String address) {
+	public boolean sendMessage(Msg msg, String address) {
 		String[] split = address.split(":");
 		String receiverAddress = split[0];
 		int receiverPort = Integer.parseInt(split[1]);
@@ -443,4 +446,11 @@ public class Node implements Runnable {
 		this.heartbeatTimeout = time;
 	}
 
+	public StateMachine getStateMachine() {
+		return this.sm;
+	}
+	
+	public HashMap<String, Integer> getNextIndex() {
+		return this.nextIndex;
+	}
 }

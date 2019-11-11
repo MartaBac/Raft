@@ -15,13 +15,18 @@ public class HeartbeatTask extends TimerTask {
 
 	@Override
 	public void run() {
-		AppendRequest heartbeat = new AppendRequest(
-				this.node.getCurrentTerm(), 
-				this.node.getFullAddress(), 
-				this.node.getLog().getDimension(), 
-				this.node.getCurrentTerm() - 1,
-				this.node.getCommitIndex());
-		this.node.sendBroadcast(heartbeat);
+		AppendRequest hb;
+		// Invio hearbeat ai follower
+		for(String toFollower : this.node.getAddressesList()){
+			int indexF = this.node.getNextIndex().get(toFollower);
+			hb = new AppendRequest(
+					this.node.getCurrentTerm(), 
+					this.node.getFullAddress(),
+					indexF - 1 , 
+					this.node.getLog().getEntry(indexF - 1).getTerm(),
+					this.node.getCommitIndex());
+			this.node.sendMessage(hb, toFollower);
+		}
 	}
 
 }

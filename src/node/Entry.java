@@ -31,6 +31,8 @@ public class Entry implements Serializable {
 	}
 	
 	public String toString() {
+		if (command == null) 
+			return "null command";
 		return command.toString();
 	}
 	

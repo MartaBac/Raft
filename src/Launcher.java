@@ -128,7 +128,22 @@ public class Launcher {
 				break;
 			default:
 				break;
-		}
+			}
+			break;
+		case "check":
+			switch (split[1]) {
+			case "state":
+				System.out.println("State of " + split[2] + " is "+
+						listaNodi.get(ip + ":" + split[2]).getStateMachine().toString());
+				break;
+			case "log":
+				System.out.println("Log of " + split[2] + " is "+
+						listaNodi.get(ip + ":" + split[2]).getLog().toString());
+				break;
+			default:
+				System.err.println("Error: invalid input set");
+				break;
+			}
 			break;
 		default:
 			System.err.println("Error: invalid input");

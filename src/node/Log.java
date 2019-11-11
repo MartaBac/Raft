@@ -50,4 +50,13 @@ public class Log {
 			this.entries.remove(this.entries.size()-1);
 		}
 	}
+	
+	@Override
+	public String toString() {
+		String result = "";
+		for(Entry e: this.entries) {
+			result += e.toString() + " \n"; 
+		}
+		return result;
+	}
 }

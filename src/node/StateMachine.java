@@ -16,11 +16,13 @@ public class StateMachine {
 	}
 	
 	public void applyEntry(Entry entry){
+		System.out.print("APPLYING "+ entry.toString());
 		String command = (String) entry.getCommand();
 		String[] commands = command.split(" ");
 		int value = Integer.parseInt(commands[1]);
 		switch (commands[0]) { 
 		case "ADD":
+			System.out.println("ADDING");
 			this.state += value;
 			break;
 		case "SUB":
@@ -30,6 +32,10 @@ public class StateMachine {
 			System.out.println("Invalid command");
 			break;
 		}
+	}
+	
+	public String toString() {
+		return Integer.toString(this.state);
 	}
 	
 }
