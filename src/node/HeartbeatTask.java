@@ -15,6 +15,10 @@ public class HeartbeatTask extends TimerTask {
 
 	@Override
 	public void run() {
+		sendHeartbeats();
+	}
+	
+	public void sendHeartbeats(){
 		AppendRequest hb;
 		// Invio hearbeat ai follower
 		for(String toFollower : this.node.getAddressesList()){
@@ -25,7 +29,7 @@ public class HeartbeatTask extends TimerTask {
 					indexF - 1 , 
 					this.node.getLog().getEntry(indexF - 1).getTerm(),
 					this.node.getCommitIndex());
-			this.node.sendMessage(hb, toFollower);
+			this.node.getLinker().sendMessage(hb, toFollower);
 		}
 	}
 
