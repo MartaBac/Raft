@@ -59,7 +59,7 @@ public class Launcher {
 			
 			int leader = 0;
 			for (Map.Entry<String, Node> entry : listaNodi.entrySet()) {
-				String key = entry.getKey();
+				//String key = entry.getKey();
 				Node node = entry.getValue();
 				// System.out.println(" "+key + " " + node.getRole());
 				if (node.getRole().equals(Role.LEADER))
@@ -78,7 +78,7 @@ public class Launcher {
 	 */
 	public static boolean isNumeric(String strNum) {
 		try {
-			double d = Double.parseDouble(strNum);
+			Double.parseDouble(strNum);
 		} catch (NumberFormatException | NullPointerException nfe) {
 			return false;
 		}
@@ -100,9 +100,12 @@ public class Launcher {
 		case "set":
 			switch (split[1]) {
 			case "electionTimeout":
-				if (split.length >= 4 && isNumeric(split[3]) && listaNodi.containsKey(ip + ":" + split[2])) {
-					System.out.println("setting election timeout of " + split[2] + " to " + split[3]);
-					listaNodi.get(ip + ":" + split[2]).setElectionTimeout(Integer.valueOf(split[3]));
+				if (split.length >= 4 && isNumeric(split[3]) && listaNodi.containsKey(ip 
+						+ ":" + split[2])) {
+					System.out.println("setting election timeout of " + split[2] + " to "
+						+ split[3]);
+					listaNodi.get(ip + ":" + split[2]).setElectionTimeout(Integer.valueOf
+							(split[3]));
 				} else {
 					System.err.println("Error: invalid input in election timeout");
 				}

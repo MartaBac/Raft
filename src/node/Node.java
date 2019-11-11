@@ -6,12 +6,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.Timer;
-import java.util.TimerTask;
 
 import messages.*;
 
@@ -41,7 +38,7 @@ public class Node implements Runnable {
 
 	private String votedFor = null; // id nodo per cui ha votato
 	private int currentTerm = 0;
-	private int commitIndex = 0; // indice > fra i log, potrebbe essere ancora da committare
+	private int commitIndex = -1; // indice > fra i log, potrebbe essere ancora da committare
 	private int lastApplied = 0; // indice dell'ultimo log applicato alla SM
 	private HashMap<String, Integer> nextIndex = new HashMap<String, Integer>();
 	private StateMachine sm = new StateMachine();
@@ -182,15 +179,16 @@ public class Node implements Runnable {
 			// AppendRequest ricevute dal leader
 			else{
 				AppendResponse appResponse;
-				if(resp.getTerm()<this.currentTerm ){
+				if(resp.getTerm() < this.currentTerm){
 					// rispondo falso
 					appResponse = new AppendResponse(this.currentTerm,false, 
 							this.myFullAddress);
 					this.sendMessage(appResponse, resp.getLeaderId());
 					return;
 				}
+				
 				Entry e = this.log.getEntry(resp.getPrevLogIndex());
-				if(e == null){
+				if(e.getCommand() == null && resp.getPrevLogIndex() >= 0){
 					// rispondo false
 					appResponse = new AppendResponse(this.currentTerm,false, 
 							this.myFullAddress);
@@ -207,7 +205,7 @@ public class Node implements Runnable {
 					return;
 				}
 				// rispondo true dopo aver fatto l'append
-				this.log.appendEntries(resp.getEntry());
+				this.log.appendEntries(resp.getEntry(), resp.getPrevLogIndex() + 1);
 				appResponse = new AppendResponse(this.currentTerm,true,
 						this.myFullAddress);
 				this.sendMessage(appResponse, resp.getLeaderId());
@@ -231,6 +229,7 @@ public class Node implements Runnable {
 				// Cerco il maggiore committabile
 				int committable = comCount.get(indexMajority);
 				if(committable > this.commitIndex){
+					System.out.println("commit");
 					// committo
 					this.commitIndex = committable;
 					// applico state machine
@@ -260,9 +259,8 @@ public class Node implements Runnable {
 		// TODO: client response
 		if (receivedValue instanceof ClientRequest) {
 			ClientRequest response = (ClientRequest) receivedValue;
-			if (!this.role.equals(role.LEADER)) {
-				// Rispondo con l'indirizzo del leader
-				ClientResponse resp = new ClientResponse(new Entry("Not leader"));
+			if (!this.role.equals(Role.LEADER)) {
+				ClientResponse resp = new ClientResponse(new Entry(this.leaderId));
 				this.sendMessage(resp, response.getAddress());
 				return;
 			}
@@ -276,7 +274,9 @@ public class Node implements Runnable {
 				// TODO: per ora appendo e basta, poi bisogna rispondere quando è stata
 				// committata nel log
 				// o rifiutata
-				if(!this.log.appendEntry(response.getParams())){
+				Entry e = new Entry(response.getParams().getCommand(),this.currentTerm);
+			
+				if(!this.log.appendEntry(e)){
 					// rispondi false
 					break;
 				}
@@ -285,8 +285,11 @@ public class Node implements Runnable {
 				// Invio delle appendRequest ai follower
 				for(String toFollower : this.addresses){
 					int indexF = this.nextIndex.get(toFollower);
+					System.out.println("indice append " + indexF);
+					System.out.println("term append " +  this.log.getEntry(indexF).getTerm());
+					System.out.println("entry " + this.log.getEntry(indexF).toString());
 					req = new AppendRequest(this.currentTerm, this.myFullAddress,
-							indexF , this.log.getEntry(indexF).getTerm(), 
+							indexF - 1 , this.log.getEntry(indexF - 1).getTerm(), 
 							this.log.getEntries(indexF), this.commitIndex);
 					this.sendMessage(req, toFollower);
 				}
@@ -370,6 +373,7 @@ public class Node implements Runnable {
 		case LEADER:
 			// heartbeat
 			// Disattivo timeoutElection
+			this.leaderId = this.myFullAddress;
 			this.stopElection();
 			this.nextIndex.clear();
 			for (String nodeAd : this.addresses) {

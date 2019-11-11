@@ -15,6 +15,13 @@ public class Log {
 		}
 	}
 	
+	public void appendEntries(ArrayList<Entry> e, int i){
+		this.deleteFrom(i);
+		for(Entry entry: e){
+			entries.add(entry);
+		}
+	}
+	
 	/**
 	 * 
 	 * @return ultima entry inserita nel Log, null se out of bound
@@ -24,10 +31,10 @@ public class Log {
 	}
 	
 	public Entry getEntry(int i){
-		if(entries.size() >= i+1)
+		if(i >= 0 && entries.size() > i)
 			return entries.get(i);
 		else
-			return null;
+			return new Entry(null, -1); 
 	}
 	
 	public int getDimension(){

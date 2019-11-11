@@ -14,7 +14,6 @@ import java.net.Socket;
 
 import messages.*;
 import node.Entry;
-import node.StateMachine;
 
 /* This class will handle the incoming messages from other nodes */
 public class Client implements Runnable {

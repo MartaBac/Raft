@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 import node.Entry;
-import node.StateMachine;
 
 public class ClientLauncher {
 	public static void main(String[] args) {
@@ -32,7 +31,7 @@ public class ClientLauncher {
 				client.set(commands[1], new Entry(commands[2]));
 				break;
 			case "ADD":
-				client.send(commands[2], new Entry(commands[0]+commands[1]));
+				client.send(commands[2], new Entry(commands[0] + " " + commands[1]));
 				break;
 			default:
 				System.err.println("Unrecognized command");
