@@ -27,7 +27,7 @@ public class NodeLinker implements Runnable {
             server = new ServerSocket(0);
             this.port = server.getLocalPort();
         } catch (IOException ex) {
-            System.out.println("NodeLinker Error 001 - Node: " + this.node.getId());
+            System.err.println("NodeLinker Error 001 - Node: " + this.node.getId());
             ex.printStackTrace();
             exit(-1);
         }
@@ -46,7 +46,7 @@ public class NodeLinker implements Runnable {
                 node.processMessage(receivedValue);
                 s.close();
             } catch (Exception ex) {
-                System.out.println("NodeLinker Error 002 - Node: " + this.node.getId());
+                System.err.println("NodeLinker Error 002 - Node: " + this.node.getId());
                 ex.printStackTrace();
             }
         }
@@ -68,7 +68,7 @@ public class NodeLinker implements Runnable {
 			oos.flush();
 			s.close();
 		} catch (Exception ex) {
-			System.out.println("Connection error 002");
+			System.err.println("Connection error 002");
 			return false;
 		}
 		return true;

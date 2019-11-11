@@ -67,7 +67,6 @@ public class Launcher {
 			}
 			if (leader > 1)
 				System.exit(-1);
-			// System.out.println("");
 		}
 	}
 

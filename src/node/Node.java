@@ -15,7 +15,7 @@ public class Node implements Runnable {
 	private String address = "127.0.0.1";
 	private int port = 0;
 	private String myFullAddress = address + ":" + port;
-	private ArrayList<String> addresses = new ArrayList<String>(); 
+	private ArrayList<String> addresses = new ArrayList<String>();
 
 	// Receiver class
 	private NodeLinker linker;
@@ -48,7 +48,7 @@ public class Node implements Runnable {
 		this.setPort(this.linker.getPort());
 		this.myFullAddress = this.address + ":" + this.port;
 	}
-	
+
 	// Thread principale
 	@Override
 	public void run() {
@@ -61,7 +61,8 @@ public class Node implements Runnable {
 		this.stopElection();
 		this.electionTask = new ElectionTask(this);
 		double randomDouble = Math.random();
-		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - Variables.minRet)) + Variables.minRet;
+		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - 
+				Variables.minRet)) + Variables.minRet;
 		this.timer.schedule(this.electionTask, this.electionTimeout);
 	}
 
@@ -92,7 +93,7 @@ public class Node implements Runnable {
 	public void processMessage(Msg receivedValue) {
 		if (receivedValue instanceof VoteRequest) {
 			VoteRequest resp = (VoteRequest) receivedValue;
-			this.handleVoteRequest(resp);		
+			this.handleVoteRequest(resp);
 			return;
 		}
 		if (receivedValue instanceof VoteResponse) {
@@ -103,67 +104,7 @@ public class Node implements Runnable {
 		// Le ricevono candidate e follower (?)
 		if (receivedValue instanceof AppendRequest) {
 			AppendRequest resp = (AppendRequest) receivedValue;
-			this.leaderId = resp.getLeaderId();
-			if (resp.getLeaderCommit() > this.commitIndex) {
-				// Sono state committate delle entries
-				if (this.log.getEntry(resp.getPrevLogIndex()).getTerm() == resp.getPrevLogTerm()) {
-					// To check
-					System.out.println("LEADER COMMIT 2: " + this.log.getEntry(resp.getPrevLogIndex()).getTerm());
-					this.commitIndex = resp.getLeaderCommit();
-					// int ind = Math.min(resp.getLeaderCommit(),
-					// resp.getPrevLogIndex());
-					this.applyEntries(this.lastApplied, this.commitIndex);
-				}
-			}
-			// heartbeat
-			boolean b = false;
-			if (resp.getEntry() == null) {
-				if (resp.getTerm() >= this.currentTerm) {
-					this.votedFor = null;
-					this.voters.clear();
-					b = true;
-					this.currentTerm = resp.getTerm();
-					if (this.role != Role.FOLLOWER)
-						this.setRole(Role.FOLLOWER);
-					else {
-						this.setElectionTimeout();
-					}
-					// Controllo se committare
-				}
-
-				AppendResponse hResponse = new AppendResponse(this.currentTerm, b, this.myFullAddress);
-				this.linker.sendMessage(hResponse, resp.getLeaderId());
-			}
-			// AppendRequest ricevute dal leader
-			else {
-				AppendResponse appResponse;
-				if (resp.getTerm() < this.currentTerm) {
-					// rispondo falso
-					appResponse = new AppendResponse(this.currentTerm, false, this.myFullAddress);
-					this.linker.sendMessage(appResponse, resp.getLeaderId());
-					return;
-				}
-
-				Entry e = this.log.getEntry(resp.getPrevLogIndex());
-				if (e.getCommand() == null && resp.getPrevLogIndex() >= 0) {
-					// rispondo false
-					appResponse = new AppendResponse(this.currentTerm, false, this.myFullAddress);
-					this.linker.sendMessage(appResponse, resp.getLeaderId());
-					return;
-				}
-				if (e.getTerm() != resp.getPrevLogTerm()) {
-					// rispondo false e sostituisco
-					this.log.deleteFrom(resp.getPrevLogIndex());
-					// risposta false
-					appResponse = new AppendResponse(this.currentTerm, false, this.myFullAddress);
-					this.linker.sendMessage(appResponse, resp.getLeaderId());
-					return;
-				}
-				// rispondo true dopo aver fatto l'append
-				this.log.appendEntries(resp.getEntry(), resp.getPrevLogIndex() + 1);
-				appResponse = new AppendResponse(this.currentTerm, true, this.myFullAddress);
-				this.linker.sendMessage(appResponse, resp.getLeaderId());
-			}
+			this.handleAppendRequest(resp);
 			return;
 		}
 		// Le riceve solo il leader
@@ -173,60 +114,153 @@ public class Node implements Runnable {
 			return;
 		}
 
-		// TODO: client response
 		if (receivedValue instanceof ClientRequest) {
 			ClientRequest response = (ClientRequest) receivedValue;
-			if (!this.role.equals(Role.LEADER)) {
-				ClientResponse resp = new ClientResponse(new Entry(this.leaderId));
-				this.linker.sendMessage(resp, response.getAddress());
-				return;
-			}
-			switch (response.getRequest()) {
-			case "get":
-				// TODO: per ora rispondo un valore a caso, il raft prevede
-				// altri passaggi
-				ClientResponse resp = new ClientResponse(new Entry("TEST"));
-				this.linker.sendMessage(resp, response.getAddress());
-				break;
-			case "set":
-				// TODO: per ora appendo e basta, poi bisogna rispondere quando
-				// è stata
-				// committata nel log
-				// o rifiutata
-				Entry e = new Entry(response.getParams().getCommand(), this.currentTerm);
-
-				if (!this.log.appendEntry(e)) {
-					// rispondi false
-					break;
-				}
-
-				AppendRequest req;
-				// Invio delle appendRequest ai follower
-				for (String toFollower : this.addresses) {
-					int indexF = this.nextIndex.get(toFollower);
-					System.out.println("indice append " + indexF);
-					System.out.println("term append " + this.log.getEntry(indexF).getTerm());
-					System.out.println("entry " + this.log.getEntry(indexF).toString());
-					req = new AppendRequest(this.currentTerm, this.myFullAddress, indexF - 1,
-							this.log.getEntry(indexF - 1).getTerm(), this.log.getEntries(indexF), this.commitIndex);
-					this.linker.sendMessage(req, toFollower);
-				}
-				break;
-			default:
-				// TODO: rifiutare clientReq
-				break;
-			}
+			this.handleClientRequest(response);
+			return;
 		}
 	}
 
 	/**
-	 * Gestione delle AppendResponse:
-	 * . se la risposta è positiva -> aggiungo il nodo fra i miei elettori e controllo
-	 * 		se ho la maggioranza dei voti e quindi posso diventare Leader.
-	 * . se la risposta è negativa -> confronto mio term con quello di chi ha risposto,
-	 * 		e se quest'ultimo è maggiore cado dal ruolo di Leader,	altrimenti devo 
-	 * 		decrementare il nextIndex di quel nodo, in quanto gli mancano delle 
-	 * 		informazioni, e gli mando una nuova appendRequest.
+	 * Gestisce le AppendRequest: controllo se il commitIndex mio è inferiore a
+	 * quello del leader, e in caso lo sia vuol dire che ho degli elementi da
+	 * committare e quindi devo aggiornare il mio index e applicare le entries
+	 * alla state machine. In caso l'append contenga una Entry null -> è un
+	 * heartbeat, in esso verranno resettati i timer, eventualmente aggiornati i
+	 * term e, se un non follower riceve un heartbeat con term più alto del
+	 * proprio, cade e diventa follower. Vengono gestite anche le append
+	 * contenenti effettivamente entries
+	 * 
+	 * @param resp
+	 */
+	private void handleAppendRequest(AppendRequest resp) {
+		this.leaderId = resp.getLeaderId();
+		if (resp.getLeaderCommit() > this.commitIndex) {
+			// Sono state committate delle entries
+			if (this.log.getEntry(resp.getPrevLogIndex()).getTerm() == 
+					resp.getPrevLogTerm()) {
+				// To check
+				System.out.println("LEADER COMMIT 2: " + this.log.getEntry(
+						resp.getPrevLogIndex()).getTerm());
+				this.commitIndex = resp.getLeaderCommit();
+				// int ind = Math.min(resp.getLeaderCommit(),
+				// resp.getPrevLogIndex());
+				this.applyEntries(this.lastApplied, this.commitIndex);
+			} else {
+				// decremento index e rispondo false?
+			}
+		}
+		// Heartbeat
+		boolean b = false;
+		if (resp.getEntry() == null) {
+			if (resp.getTerm() >= this.currentTerm) {
+				this.votedFor = null;
+				this.voters.clear();
+				b = true;
+				this.currentTerm = resp.getTerm();
+				if (this.role != Role.FOLLOWER)
+					this.setRole(Role.FOLLOWER);
+				else {
+					this.setElectionTimeout();
+				}
+			}
+
+			AppendResponse hResponse = new AppendResponse(this.currentTerm, b, 
+					this.myFullAddress);
+			this.linker.sendMessage(hResponse, resp.getLeaderId());
+		}
+		// AppendRequest ricevute dal leader
+		else {
+			AppendResponse appResponse;
+			if (resp.getTerm() < this.currentTerm) {
+				// rispondo falso
+				appResponse = new AppendResponse(this.currentTerm, false, 
+						this.myFullAddress);
+				this.linker.sendMessage(appResponse, resp.getLeaderId());
+				return;
+			}
+
+			Entry e = this.log.getEntry(resp.getPrevLogIndex());
+			if (e.getCommand() == null && resp.getPrevLogIndex() >= 0) {
+				// rispondo false
+				appResponse = new AppendResponse(this.currentTerm, false, 
+						this.myFullAddress);
+				this.linker.sendMessage(appResponse, resp.getLeaderId());
+				return;
+			}
+			if (e.getTerm() != resp.getPrevLogTerm()) {
+				// rispondo false e sostituisco
+				this.log.deleteFrom(resp.getPrevLogIndex());
+				// risposta false
+				appResponse = new AppendResponse(this.currentTerm, false, 
+						this.myFullAddress);
+				this.linker.sendMessage(appResponse, resp.getLeaderId());
+				return;
+			}
+			// rispondo true dopo aver fatto l'append
+			this.log.appendEntries(resp.getEntry(), resp.getPrevLogIndex() + 1);
+			appResponse = new AppendResponse(this.currentTerm, true, this.myFullAddress);
+			this.linker.sendMessage(appResponse, resp.getLeaderId());
+		}
+		return;
+
+	}
+
+	/**
+	 * 
+	 * @param response
+	 */
+	private void handleClientRequest(ClientRequest response) {
+		if (!this.role.equals(Role.LEADER)) {
+			ClientResponse resp = new ClientResponse(new Entry(this.leaderId));
+			this.linker.sendMessage(resp, response.getAddress());
+			return;
+		}
+		switch (response.getRequest()) {
+		case "get":
+			// TODO: per ora rispondo un valore a caso, il raft prevede
+			// altri passaggi
+			ClientResponse resp = new ClientResponse(new Entry("TEST"));
+			this.linker.sendMessage(resp, response.getAddress());
+			break;
+		case "set":
+			// TODO: per ora appendo e basta, poi bisogna rispondere quando
+			// è stata committata nel log o rifiutata
+			Entry e = new Entry(response.getParams().getCommand(), this.currentTerm);
+
+			if (!this.log.appendEntry(e)) {
+				// rispondi false
+				break;
+			}
+
+			AppendRequest req;
+			// Invio delle appendRequest ai follower
+			for (String toFollower : this.addresses) {
+				int indexF = this.nextIndex.get(toFollower);
+				System.out.println("indice append " + indexF);
+				System.out.println("term append " + this.log.getEntry(indexF).getTerm());
+				System.out.println("entry " + this.log.getEntry(indexF).toString());
+				req = new AppendRequest(this.currentTerm, this.myFullAddress, indexF - 1,
+						this.log.getEntry(indexF - 1).getTerm(), 
+						this.log.getEntries(indexF), this.commitIndex);
+				this.linker.sendMessage(req, toFollower);
+			}
+			break;
+		default:
+			// TODO: rifiutare clientReq
+			break;
+		}
+	}
+
+	/**
+	 * Gestione delle AppendResponse: . se la risposta è positiva -> aggiungo il
+	 * nodo fra i miei elettori e controllo se ho la maggioranza dei voti e
+	 * quindi posso diventare Leader. . se la risposta è negativa -> confronto
+	 * mio term con quello di chi ha risposto, e se quest'ultimo è maggiore cado
+	 * dal ruolo di Leader, altrimenti devo decrementare il nextIndex di quel
+	 * nodo, in quanto gli mancano delle informazioni, e gli mando una nuova
+	 * appendRequest.
+	 * 
 	 * @param response
 	 */
 	private void handleAppendResponse(AppendResponse response) {
@@ -262,25 +296,27 @@ public class Node implements Runnable {
 				int decrementedIndex = this.nextIndex.get(response.getSender()) - 1;
 				this.nextIndex.put(response.getSender(), decrementedIndex);
 				// Mando appendRequest usando il nuovo index
-				AppendRequest req = new AppendRequest(this.currentTerm, this.myFullAddress, decrementedIndex,
-						this.log.getEntry(decrementedIndex).getTerm(), this.log.getEntries(decrementedIndex),
-						this.commitIndex);
+				AppendRequest req = new AppendRequest(this.currentTerm, 
+						this.myFullAddress, decrementedIndex,
+						this.log.getEntry(decrementedIndex).getTerm(), 
+						this.log.getEntries(decrementedIndex), this.commitIndex);
 				this.linker.sendMessage(req, response.getSender());
 
 			}
 		}
 		return;
-		
+
 	}
 
 	/**
-	 * Gestione della ricezione di un voto: controlla se il voto è positivo o meno e, 
-	 * in caso positivo, controlla se adesso ho la maggioranza dei voti (compreso me 
-	 * stesso) e quindi se posso diventare leader.
+	 * Gestione della ricezione di un voto: controlla se il voto è positivo o
+	 * meno e, in caso positivo, controlla se adesso ho la maggioranza dei voti
+	 * (compreso me stesso) e quindi se posso diventare leader.
 	 * 
-	 * @param resp VoteResponse
+	 * @param resp
+	 *            VoteResponse
 	 */
-	private void handleVoteResponse(VoteResponse resp) {		
+	private void handleVoteResponse(VoteResponse resp) {
 		if (!resp.isVoteGranted() && resp.getTerm() > this.currentTerm) {
 			this.currentTerm = resp.getTerm();
 			this.setRole(Role.FOLLOWER);
@@ -291,17 +327,19 @@ public class Node implements Runnable {
 		if (resp.isVoteGranted())
 			voters.add(resp.getSender());
 		// Controllo voti
-		if (Math.ceil(((double) this.addresses.size() + 1) / 2) <= (this.voters.size() + 1)) {
+		if (Math.ceil(((double) this.addresses.size() + 1) / 2) <= (this.voters.size()
+				+ 1)) {
 			this.setRole(Role.LEADER);
 		}
 		return;
 	}
 
 	/**
-	 * Gestione della ricezione del messaggio di una voteRequest: voterà o no per il
-	 * richiedente
+	 * Gestione della ricezione del messaggio di una voteRequest: voterà o no
+	 * per il richiedente
 	 * 
-	 * @param resp VoteRequest
+	 * @param resp
+	 *            VoteRequest
 	 */
 	private void handleVoteRequest(VoteRequest resp) {
 		// Se sono candidato/leader e mi arriva un term più alto torno follower
@@ -315,17 +353,17 @@ public class Node implements Runnable {
 		}
 		// Decisione voto
 		if (resp.getTerm() >= this.currentTerm) {
-			if ((this.votedFor == null || this.votedFor.equals(resp.getSender())) && 
-					resp.getLastLogIndex() >= this.lastApplied) {
+			if ((this.votedFor == null || this.votedFor.equals(resp.getSender()))
+					&& resp.getLastLogIndex() >= this.lastApplied) {
 				this.linker.sendMessage(new VoteResponse(this.currentTerm, true, 
 						this.myFullAddress), resp.getSender());
 				this.votedFor = resp.getSender();
 				return;
 			}
 		}
-		this.linker.sendMessage(new VoteResponse(this.currentTerm, false, this.myFullAddress), 
-				resp.getSender());
-		return;		
+		this.linker.sendMessage(new VoteResponse(this.currentTerm, false, 
+				this.myFullAddress), resp.getSender());
+		return;
 	}
 
 	/**
@@ -338,7 +376,8 @@ public class Node implements Runnable {
 	 *            è l'indice dell'ultima entry da applicare
 	 */
 	private void applyEntries(int lastCommitIndex, int committable) {
-		System.out.println("Last commit index: " + lastCommitIndex + " Committable " + committable);
+		System.out.println("Last commit index: " + lastCommitIndex + " Committable "
+	+ committable);
 		// applico alla state machine
 		for (int i = lastCommitIndex + 1; i <= committable; i++) {
 			Entry e = this.log.getEntry(i);
@@ -376,7 +415,8 @@ public class Node implements Runnable {
 			this.votedFor = this.myFullAddress;
 			this.setElectionTimeout();
 			// TODO controllare correttezza parametri
-			this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm));
+			this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex,
+					currentTerm));
 			break;
 		case LEADER:
 			// heartbeat
@@ -458,8 +498,8 @@ public class Node implements Runnable {
 	public HashMap<String, Integer> getNextIndex() {
 		return this.nextIndex;
 	}
-	
-	public NodeLinker getLinker(){
+
+	public NodeLinker getLinker() {
 		return this.linker;
 	}
 }

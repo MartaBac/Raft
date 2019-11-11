@@ -29,7 +29,7 @@ public class StateMachine {
 			this.state -= value;
 			break;
 		default:
-			System.out.println("Invalid command");
+			System.err.println("Invalid command");
 			break;
 		}
 	}
