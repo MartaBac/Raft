@@ -87,7 +87,7 @@ public class Node implements Runnable {
 	}
 
 	/**
-	 * 
+	 * Gestione dei diversi tipi di messaggi in ricezione
 	 * @param receivedValue
 	 */
 	public void processMessage(Msg receivedValue) {
@@ -101,7 +101,6 @@ public class Node implements Runnable {
 			this.handleVoteResponse(resp);
 			return;
 		}
-		// Le ricevono candidate e follower (?)
 		if (receivedValue instanceof AppendRequest) {
 			AppendRequest resp = (AppendRequest) receivedValue;
 			this.handleAppendRequest(resp);
@@ -119,6 +118,7 @@ public class Node implements Runnable {
 			this.handleClientRequest(response);
 			return;
 		}
+		return;
 	}
 
 	/**
