@@ -226,11 +226,6 @@ public class Node implements Runnable {
 		// Invio delle appendRequest ai follower
 		for (String toFollower : this.addresses) {
 			int indexF = this.nextIndex.get(toFollower);
-			System.out.println("[" + this.myFullAddress + "] indice append " + indexF);
-			System.out.println("[" + this.myFullAddress + "] term append " + 
-					this.log.getEntry(indexF).getTerm());
-			System.out.println("[" + this.myFullAddress + "] entry " + 
-					this.log.getEntry(indexF).toString());
 			req = new AppendRequest(this.currentTerm, this.myFullAddress, indexF - 1,
 					this.log.getEntry(indexF - 1).getTerm(), this.log.getEntries(indexF),
 					this.commitIndex);
