@@ -66,24 +66,13 @@ public class Client implements Runnable {
 
 	public boolean get(String address) {
     	ClientRequest msg = new ClientRequest("get", this.fullAddress);
-    	if(this.sendMessage(address, msg))
-    		return true;
-    	return false;
+    	return this.sendMessage(address, msg);
     }
     
-    public boolean set(String address, Entry value) {
-    	ClientRequest msg = new ClientRequest("set", this.fullAddress, value);
-    	if(this.sendMessage(address, msg))
-    		return true;
-    	return false;
-    }
-    
-    public boolean send(String address, Entry value) {
-    	ClientRequest msg = new ClientRequest("set", this.fullAddress, value);
-    	if(this.sendMessage(address, msg))
-    		return true;
-    	return false;
-    }
+    public boolean operation(String address, String line) {
+    	ClientRequest msg = new ClientRequest("op", this.fullAddress, line);
+    	return this.sendMessage(address, msg);
+	}
     
     public boolean sendMessage(String address, ClientRequest msg) {
     	String[] split;
