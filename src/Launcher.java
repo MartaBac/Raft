@@ -146,9 +146,6 @@ public class Launcher {
 				break;
 			}
 			break;
-		case "exit":
-			System.out.println("[Main] Shutting down");
-			return true;
 		default:
 			System.err.println("[Main] Error: invalid input");
 			break;

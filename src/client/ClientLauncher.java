@@ -30,11 +30,6 @@ public class ClientLauncher {
 					case "op":
 						client.operation(commands[1], commands[2] + " " + commands[3]);
 						break;
-					case "quit":
-						exit = true;
-						client.stopClient();
-						System.out.println("Client terminated");
-						break;
 					default:
 						System.err.println("Unrecognized command");
 						break;

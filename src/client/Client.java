@@ -111,9 +111,5 @@ public class Client implements Runnable {
     public int getPort() {
         return this.port;
     }
-    
-    public void stopClient() {
-    	this.exit = true;
-    }
    
 }
