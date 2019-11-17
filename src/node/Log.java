@@ -6,20 +6,27 @@ public class Log {
 	
 	
 	public boolean appendEntry(Entry e){
+		String[] s = ((String) e.getCommand()).split(" ");
+		if(!Operation.contains(s[0]))
+			return false;
 		return entries.add(e);
 	}
 	
-	public void appendEntries(ArrayList<Entry> e){
+	public boolean appendEntries(ArrayList<Entry> e){
 		for(Entry entry: e){
-			entries.add(entry);
+			if(!this.appendEntry(entry))
+				return false;
 		}
+		return true;
 	}
 	
-	public void appendEntries(ArrayList<Entry> e, int i){
+	public boolean appendEntries(ArrayList<Entry> e, int i){
 		this.deleteFrom(i);
 		for(Entry entry: e){
-			entries.add(entry);
+			if(!this.appendEntry(entry))
+				return false;
 		}
+		return true;
 	}
 	
 	/**

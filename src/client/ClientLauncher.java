@@ -26,7 +26,8 @@ public class ClientLauncher {
 					client.get(commands[1]);
 					break;
 				case "op":
-					client.operation(commands[1], commands[2]+" "+commands[3]);
+					client.operation(commands[1], commands[2] + " " + commands[3]);
+					break;
 				default:
 					System.err.println("Unrecognized command");
 					break;

@@ -212,46 +212,59 @@ public class Node implements Runnable {
 	 */
 	private void handleClientRequest(ClientRequest response) {
 		if (!this.role.equals(Role.LEADER)) {
-			ClientResponse resp = new ClientResponse(new Entry(this.leaderId));
+			ClientResponse resp = new ClientResponse(this.leaderId, false);
 			this.linker.sendMessage(resp, response.getAddress());
 			return;
 		}
+		
 		switch (response.getRequest()) {
-		case "get":
-			// TODO: per ora rispondo un valore a caso, il raft prevede
-			// altri passaggi
-			ClientResponse resp = new ClientResponse(new Entry("TEST"));
-			this.linker.sendMessage(resp, response.getAddress());
-			break;
-		case "set":
-			// TODO: per ora appendo e basta, poi bisogna rispondere quando
-			// è stata committata nel log o rifiutata
-			Entry e = new Entry(response.getParams().getCommand(), this.currentTerm);
-
-			if (!this.log.appendEntry(e)) {
-				// rispondi false
+			case "get":
+				ClientResponse resp;
+				// TODO non far dormire tutto il thread
+				try {
+					Thread.sleep(this.heartbeatTimeout);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+					break;
+				}
+				if(this.role.equals(Role.LEADER))
+					resp = new ClientResponse(this.sm.getState(), true);
+				else
+					resp = new ClientResponse(this.leaderId, false);
+					
+				this.linker.sendMessage(resp, response.getAddress());
 				break;
-			}
-
-			AppendRequest req;
-			// Invio delle appendRequest ai follower
-			for (String toFollower : this.addresses) {
-				int indexF = this.nextIndex.get(toFollower);
-				System.out.println("[" + this.myFullAddress + "] indice append " + 
-						indexF);
-				System.out.println("[" + this.myFullAddress + "] term append " + 
-						this.log.getEntry(indexF).getTerm());
-				System.out.println("[" + this.myFullAddress + "] entry " + 
-						this.log.getEntry(indexF).toString());
-				req = new AppendRequest(this.currentTerm, this.myFullAddress, indexF - 1,
-						this.log.getEntry(indexF - 1).getTerm(), 
-						this.log.getEntries(indexF), this.commitIndex);
-				this.linker.sendMessage(req, toFollower);
-			}
-			break;
-		default:
-			// TODO: rifiutare clientReq
-			break;
+				
+			case "op":
+				Entry e = new Entry(response.getParams(), this.currentTerm);
+				if (!this.log.appendEntry(e)) {
+					resp = new ClientResponse("Error appending " + response.getParams(), 
+							false);
+					this.linker.sendMessage(resp, response.getAddress());
+					break;
+				}
+	
+				AppendRequest req;
+				// Invio delle appendRequest ai follower
+				for (String toFollower : this.addresses) {
+					int indexF = this.nextIndex.get(toFollower);
+					System.out.println("[" + this.myFullAddress + "] indice append " + 
+							indexF);
+					System.out.println("[" + this.myFullAddress + "] term append " + 
+							this.log.getEntry(indexF).getTerm());
+					System.out.println("[" + this.myFullAddress + "] entry " + 
+							this.log.getEntry(indexF).toString());
+					req = new AppendRequest(this.currentTerm, this.myFullAddress, indexF - 1,
+							this.log.getEntry(indexF - 1).getTerm(), 
+							this.log.getEntries(indexF), this.commitIndex);
+					this.linker.sendMessage(req, toFollower);
+				}
+				break;
+			default:
+				resp = new ClientResponse("Invalid command " + response.getParams(), 
+						false);
+				this.linker.sendMessage(resp, response.getAddress());
+				break;
 		}
 	}
 
@@ -380,12 +393,12 @@ public class Node implements Runnable {
 	 */
 	private void applyEntries(int lastCommitIndex, int committable) {
 		System.out.println("[" + this.myFullAddress + "] Last commit index: " + 
-				lastCommitIndex + " Committable "
-	+ committable);
-		// applico alla state machine
+				lastCommitIndex + " Committable " + committable);
 		for (int i = lastCommitIndex + 1; i <= committable; i++) {
 			Entry e = this.log.getEntry(i);
-			this.sm.applyEntry(e);
+			if(!this.sm.applyEntry(e))
+				System.err.println("[" + this.myFullAddress + "] Invalid command in "
+						+ "log");
 			this.lastApplied = i;
 		}
 	}
@@ -419,7 +432,6 @@ public class Node implements Runnable {
 			this.voters.clear();
 			this.votedFor = this.myFullAddress;
 			this.setElectionTimeout();
-			// TODO controllare correttezza parametri
 			this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex,
 					currentTerm));
 			break;

@@ -1,16 +1,20 @@
 package messages;
 
-import node.Entry;
-
 public class ClientResponse extends Msg {
 	private static final long serialVersionUID = 1L;
-	Entry params;
+	private Object params;
+	private boolean isState;
 	
-	public ClientResponse(Entry params) {
+	public ClientResponse(Object params, boolean isState) {
 		this.params = params;
+		this.isState = isState;
 	}
-
-	public Entry getParams() {
+	
+	public Object getParams() {
 		return this.params;
+	}
+	
+	public boolean isState(){
+		return this.isState;
 	}
 }

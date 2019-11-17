@@ -14,6 +14,7 @@ import java.net.Socket;
 
 import messages.*;
 import node.Entry;
+import node.StateMachine;
 
 /* This class will handle the incoming messages from other nodes */
 public class Client implements Runnable {
@@ -58,10 +59,15 @@ public class Client implements Runnable {
     
     private void processMessage(Msg receivedValue) {
 		if (receivedValue instanceof ClientResponse) {
-			Entry value = ((ClientResponse)receivedValue).getParams();
-			System.out.println(value.getCommand().toString());
-		}
-		
+			ClientResponse response = (ClientResponse) receivedValue;
+			if(response.isState()) {
+				// Ricevo lo stato del sistema
+				System.out.println(response.getParams());
+			} else {
+				// Messaggio errore
+				System.err.println((String) response.getParams());
+			}	
+		}	
 	}
 
 	public boolean get(String address) {
