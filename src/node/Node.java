@@ -140,8 +140,8 @@ public class Node implements Runnable {
 			if (this.log.getEntry(resp.getPrevLogIndex()).getTerm() == 
 					resp.getPrevLogTerm()) {
 				// To check
-				System.out.println("LEADER COMMIT 2: " + this.log.getEntry(
-						resp.getPrevLogIndex()).getTerm());
+				System.out.println("[" + this.myFullAddress + "] LEADER COMMIT 2: " + 
+						this.log.getEntry(resp.getPrevLogIndex()).getTerm());
 				this.commitIndex = resp.getLeaderCommit();
 				// int ind = Math.min(resp.getLeaderCommit(),
 				// resp.getPrevLogIndex());
@@ -237,9 +237,12 @@ public class Node implements Runnable {
 			// Invio delle appendRequest ai follower
 			for (String toFollower : this.addresses) {
 				int indexF = this.nextIndex.get(toFollower);
-				System.out.println("indice append " + indexF);
-				System.out.println("term append " + this.log.getEntry(indexF).getTerm());
-				System.out.println("entry " + this.log.getEntry(indexF).toString());
+				System.out.println("[" + this.myFullAddress + "] indice append " + 
+						indexF);
+				System.out.println("[" + this.myFullAddress + "] term append " + 
+						this.log.getEntry(indexF).getTerm());
+				System.out.println("[" + this.myFullAddress + "] entry " + 
+						this.log.getEntry(indexF).toString());
 				req = new AppendRequest(this.currentTerm, this.myFullAddress, indexF - 1,
 						this.log.getEntry(indexF - 1).getTerm(), 
 						this.log.getEntries(indexF), this.commitIndex);
@@ -278,7 +281,7 @@ public class Node implements Runnable {
 			// Cerco il maggiore committabile
 			int committable = comCount.get(indexMajority);
 			if (committable > this.commitIndex) {
-				System.out.println("commit committable " + committable);
+				System.out.println("[" + this.myFullAddress + "] commit committable " + committable);
 				// committo
 				this.commitIndex = committable;
 				// applico state machine
@@ -376,7 +379,8 @@ public class Node implements Runnable {
 	 *            è l'indice dell'ultima entry da applicare
 	 */
 	private void applyEntries(int lastCommitIndex, int committable) {
-		System.out.println("Last commit index: " + lastCommitIndex + " Committable "
+		System.out.println("[" + this.myFullAddress + "] Last commit index: " + 
+				lastCommitIndex + " Committable "
 	+ committable);
 		// applico alla state machine
 		for (int i = lastCommitIndex + 1; i <= committable; i++) {
@@ -402,7 +406,8 @@ public class Node implements Runnable {
 	// Getter/Setter
 	public void setRole(Role role) {
 		this.voters.clear();
-		System.out.println(this.myFullAddress + " changes role to " + role.toString());
+		System.out.println("[" + this.myFullAddress + "] changed role to " + 
+				role.toString());
 		this.role = role;
 		switch (role) {
 		case FOLLOWER:

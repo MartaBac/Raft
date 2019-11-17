@@ -10,6 +10,7 @@ import java.io.Serializable;
  *
  */
 public class Entry implements Serializable {
+	private static final long serialVersionUID = 1L;
 	private Object command;
 	private int term;
 	
