@@ -9,9 +9,10 @@ public class ClientLauncher {
 		Thread clientThread = new Thread(client);
 		clientThread.start();
 		String line;
+		System.out.println("Client ready");
+		boolean exit = false;
 		do {
 			line = "";
-			System.out.println("Command: ");
 			try {
 				InputStreamReader reader = new InputStreamReader(System.in);
 				BufferedReader buffer = new BufferedReader(reader);
@@ -21,18 +22,27 @@ public class ClientLauncher {
 				System.exit(-1);
 			}
 			String[] commands = line.split(" ");
-			switch (commands[0]) {
-				case "get":
-					client.get(commands[1]);
-					break;
-				case "op":
-					client.operation(commands[1], commands[2] + " " + commands[3]);
-					break;
-				default:
-					System.err.println("Unrecognized command");
-					break;
+			try {
+				switch (commands[0]) {
+					case "get":
+						client.get(commands[1]);
+						break;
+					case "op":
+						client.operation(commands[1], commands[2] + " " + commands[3]);
+						break;
+					case "quit":
+						exit = true;
+						client.stopClient();
+						System.out.println("Client terminated");
+						break;
+					default:
+						System.err.println("Unrecognized command");
+						break;
+				}
+			} catch(Exception e) {
+				System.err.println("Invalid command format");
 			}
-		} while (!line.equals("quit"));
+		} while (!exit);
 	}
 
 }

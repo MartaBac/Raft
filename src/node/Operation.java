@@ -2,7 +2,8 @@ package node;
 
 public enum Operation {
 	ADD("add"), 
-	SUB("sub");
+	SUB("sub"),
+	READ("get");
 	
 	private final String operationName;
 	

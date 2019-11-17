@@ -61,8 +61,7 @@ public class Node implements Runnable {
 		this.stopElection();
 		this.electionTask = new ElectionTask(this);
 		double randomDouble = Math.random();
-		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - 
-				Variables.minRet)) + Variables.minRet;
+		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - Variables.minRet)) + Variables.minRet;
 		this.timer.schedule(this.electionTask, this.electionTimeout);
 	}
 
@@ -88,6 +87,7 @@ public class Node implements Runnable {
 
 	/**
 	 * Gestione dei diversi tipi di messaggi in ricezione
+	 * 
 	 * @param receivedValue
 	 */
 	public void processMessage(Msg receivedValue) {
@@ -106,7 +106,6 @@ public class Node implements Runnable {
 			this.handleAppendRequest(resp);
 			return;
 		}
-		// Le riceve solo il leader
 		if (receivedValue instanceof AppendResponse) {
 			AppendResponse response = (AppendResponse) receivedValue;
 			this.handleAppendResponse(response);
@@ -124,12 +123,11 @@ public class Node implements Runnable {
 	/**
 	 * Gestisce le AppendRequest: controllo se il commitIndex mio è inferiore a
 	 * quello del leader, e in caso lo sia vuol dire che ho degli elementi da
-	 * committare e quindi devo aggiornare il mio index e applicare le entries
-	 * alla state machine. In caso l'append contenga una Entry null -> è un
-	 * heartbeat, in esso verranno resettati i timer, eventualmente aggiornati i
-	 * term e, se un non follower riceve un heartbeat con term più alto del
-	 * proprio, cade e diventa follower. Vengono gestite anche le append
-	 * contenenti effettivamente entries
+	 * committare e quindi devo aggiornare il mio index e applicare le entries alla
+	 * state machine. In caso l'append contenga una Entry null -> è un heartbeat, in
+	 * esso verranno resettati i timer, eventualmente aggiornati i term e, se un non
+	 * follower riceve un heartbeat con term più alto del proprio, cade e diventa
+	 * follower. Vengono gestite anche le append contenenti effettivamente entries
 	 * 
 	 * @param resp
 	 */
@@ -137,17 +135,14 @@ public class Node implements Runnable {
 		this.leaderId = resp.getLeaderId();
 		if (resp.getLeaderCommit() > this.commitIndex) {
 			// Sono state committate delle entries
-			if (this.log.getEntry(resp.getPrevLogIndex()).getTerm() == 
-					resp.getPrevLogTerm()) {
-				// To check
-				System.out.println("[" + this.myFullAddress + "] LEADER COMMIT 2: " + 
-						this.log.getEntry(resp.getPrevLogIndex()).getTerm());
+			if (this.log.getEntry(resp.getPrevLogIndex()).getTerm() == resp.getPrevLogTerm()) {
+				System.out.println("[" + this.myFullAddress + "] LEADER COMMIT 2: "
+						+ this.log.getEntry(resp.getPrevLogIndex()).getTerm());
 				this.commitIndex = resp.getLeaderCommit();
-				// int ind = Math.min(resp.getLeaderCommit(),
-				// resp.getPrevLogIndex());
 				this.applyEntries(this.lastApplied, this.commitIndex);
 			} else {
-				// decremento index e rispondo false?
+				this.linker.sendMessage(new AppendResponse(this.currentTerm, false, this.myFullAddress),
+						resp.getLeaderId());
 			}
 		}
 		// Heartbeat
@@ -164,27 +159,19 @@ public class Node implements Runnable {
 					this.setElectionTimeout();
 				}
 			}
-
-			AppendResponse hResponse = new AppendResponse(this.currentTerm, b, 
-					this.myFullAddress);
+			AppendResponse hResponse = new AppendResponse(this.currentTerm, b, this.myFullAddress);
 			this.linker.sendMessage(hResponse, resp.getLeaderId());
-		}
-		// AppendRequest ricevute dal leader
-		else {
+		} else {
 			AppendResponse appResponse;
 			if (resp.getTerm() < this.currentTerm) {
-				// rispondo falso
-				appResponse = new AppendResponse(this.currentTerm, false, 
-						this.myFullAddress);
+				appResponse = new AppendResponse(this.currentTerm, false, this.myFullAddress);
 				this.linker.sendMessage(appResponse, resp.getLeaderId());
 				return;
 			}
 
 			Entry e = this.log.getEntry(resp.getPrevLogIndex());
 			if (e.getCommand() == null && resp.getPrevLogIndex() >= 0) {
-				// rispondo false
-				appResponse = new AppendResponse(this.currentTerm, false, 
-						this.myFullAddress);
+				appResponse = new AppendResponse(this.currentTerm, false, this.myFullAddress);
 				this.linker.sendMessage(appResponse, resp.getLeaderId());
 				return;
 			}
@@ -192,8 +179,7 @@ public class Node implements Runnable {
 				// rispondo false e sostituisco
 				this.log.deleteFrom(resp.getPrevLogIndex());
 				// risposta false
-				appResponse = new AppendResponse(this.currentTerm, false, 
-						this.myFullAddress);
+				appResponse = new AppendResponse(this.currentTerm, false, this.myFullAddress);
 				this.linker.sendMessage(appResponse, resp.getLeaderId());
 				return;
 			}
@@ -203,7 +189,6 @@ public class Node implements Runnable {
 			this.linker.sendMessage(appResponse, resp.getLeaderId());
 		}
 		return;
-
 	}
 
 	/**
@@ -211,71 +196,55 @@ public class Node implements Runnable {
 	 * @param response
 	 */
 	private void handleClientRequest(ClientRequest response) {
+		ClientResponse resp;
 		if (!this.role.equals(Role.LEADER)) {
-			ClientResponse resp = new ClientResponse(this.leaderId, false);
+			resp = new ClientResponse(this.leaderId, false);
 			this.linker.sendMessage(resp, response.getAddress());
 			return;
 		}
-		
+		Entry e;
 		switch (response.getRequest()) {
 			case "get":
-				ClientResponse resp;
-				// TODO non far dormire tutto il thread
-				try {
-					Thread.sleep(this.heartbeatTimeout);
-				} catch (InterruptedException e1) {
-					e1.printStackTrace();
-					break;
-				}
-				if(this.role.equals(Role.LEADER))
-					resp = new ClientResponse(this.sm.getState(), true);
-				else
-					resp = new ClientResponse(this.leaderId, false);
-					
-				this.linker.sendMessage(resp, response.getAddress());
+				e = new Entry(response.getRequest() + " " + response.getAddress(), 
+						this.currentTerm);
 				break;
-				
 			case "op":
-				Entry e = new Entry(response.getParams(), this.currentTerm);
-				if (!this.log.appendEntry(e)) {
-					resp = new ClientResponse("Error appending " + response.getParams(), 
-							false);
-					this.linker.sendMessage(resp, response.getAddress());
-					break;
-				}
-	
-				AppendRequest req;
-				// Invio delle appendRequest ai follower
-				for (String toFollower : this.addresses) {
-					int indexF = this.nextIndex.get(toFollower);
-					System.out.println("[" + this.myFullAddress + "] indice append " + 
-							indexF);
-					System.out.println("[" + this.myFullAddress + "] term append " + 
-							this.log.getEntry(indexF).getTerm());
-					System.out.println("[" + this.myFullAddress + "] entry " + 
-							this.log.getEntry(indexF).toString());
-					req = new AppendRequest(this.currentTerm, this.myFullAddress, indexF - 1,
-							this.log.getEntry(indexF - 1).getTerm(), 
-							this.log.getEntries(indexF), this.commitIndex);
-					this.linker.sendMessage(req, toFollower);
-				}
+				e = new Entry(response.getParams(), this.currentTerm);
 				break;
 			default:
 				resp = new ClientResponse("Invalid command " + response.getParams(), 
 						false);
 				this.linker.sendMessage(resp, response.getAddress());
-				break;
+				return;
+		}
+		if (!this.log.appendEntry(e)) {
+			resp = new ClientResponse("Error appending " + response.getParams(), false);
+			this.linker.sendMessage(resp, response.getAddress());
+			return;
+		}
+		AppendRequest req;
+		// Invio delle appendRequest ai follower
+		for (String toFollower : this.addresses) {
+			int indexF = this.nextIndex.get(toFollower);
+			System.out.println("[" + this.myFullAddress + "] indice append " + indexF);
+			System.out.println("[" + this.myFullAddress + "] term append " + 
+					this.log.getEntry(indexF).getTerm());
+			System.out.println("[" + this.myFullAddress + "] entry " + 
+					this.log.getEntry(indexF).toString());
+			req = new AppendRequest(this.currentTerm, this.myFullAddress, indexF - 1,
+					this.log.getEntry(indexF - 1).getTerm(), this.log.getEntries(indexF),
+					this.commitIndex);
+			this.linker.sendMessage(req, toFollower);
 		}
 	}
 
 	/**
 	 * Gestione delle AppendResponse: . se la risposta è positiva -> aggiungo il
-	 * nodo fra i miei elettori e controllo se ho la maggioranza dei voti e
-	 * quindi posso diventare Leader. . se la risposta è negativa -> confronto
-	 * mio term con quello di chi ha risposto, e se quest'ultimo è maggiore cado
-	 * dal ruolo di Leader, altrimenti devo decrementare il nextIndex di quel
-	 * nodo, in quanto gli mancano delle informazioni, e gli mando una nuova
-	 * appendRequest.
+	 * nodo fra i miei elettori e controllo se ho la maggioranza dei voti e quindi
+	 * posso diventare Leader. . se la risposta è negativa -> confronto mio term con
+	 * quello di chi ha risposto, e se quest'ultimo è maggiore cado dal ruolo di
+	 * Leader, altrimenti devo decrementare il nextIndex di quel nodo, in quanto gli
+	 * mancano delle informazioni, e gli mando una nuova appendRequest.
 	 * 
 	 * @param response
 	 */
@@ -306,16 +275,14 @@ public class Node implements Runnable {
 				this.currentTerm = response.getTerm();
 				this.setRole(Role.FOLLOWER);
 			} else {
-				// Decremento nextIndex per quel follower perchè mi ha
-				// risposto
-				// false nonostante fosse nel termine giusto
+				// Decremento nextIndex per quel follower perchè mi ha risposto false
+				// nonostante fosse nel termine giusto
 				int decrementedIndex = this.nextIndex.get(response.getSender()) - 1;
 				this.nextIndex.put(response.getSender(), decrementedIndex);
 				// Mando appendRequest usando il nuovo index
-				AppendRequest req = new AppendRequest(this.currentTerm, 
-						this.myFullAddress, decrementedIndex,
-						this.log.getEntry(decrementedIndex).getTerm(), 
-						this.log.getEntries(decrementedIndex), this.commitIndex);
+				AppendRequest req = new AppendRequest(this.currentTerm, this.myFullAddress, decrementedIndex,
+						this.log.getEntry(decrementedIndex).getTerm(), this.log.getEntries(decrementedIndex),
+						this.commitIndex);
 				this.linker.sendMessage(req, response.getSender());
 
 			}
@@ -325,12 +292,11 @@ public class Node implements Runnable {
 	}
 
 	/**
-	 * Gestione della ricezione di un voto: controlla se il voto è positivo o
-	 * meno e, in caso positivo, controlla se adesso ho la maggioranza dei voti
-	 * (compreso me stesso) e quindi se posso diventare leader.
+	 * Gestione della ricezione di un voto: controlla se il voto è positivo o meno
+	 * e, in caso positivo, controlla se adesso ho la maggioranza dei voti (compreso
+	 * me stesso) e quindi se posso diventare leader.
 	 * 
-	 * @param resp
-	 *            VoteResponse
+	 * @param resp VoteResponse
 	 */
 	private void handleVoteResponse(VoteResponse resp) {
 		if (!resp.isVoteGranted() && resp.getTerm() > this.currentTerm) {
@@ -343,19 +309,17 @@ public class Node implements Runnable {
 		if (resp.isVoteGranted())
 			voters.add(resp.getSender());
 		// Controllo voti
-		if (Math.ceil(((double) this.addresses.size() + 1) / 2) <= (this.voters.size()
-				+ 1)) {
+		if (Math.ceil(((double) this.addresses.size() + 1) / 2) <= (this.voters.size() + 1)) {
 			this.setRole(Role.LEADER);
 		}
 		return;
 	}
 
 	/**
-	 * Gestione della ricezione del messaggio di una voteRequest: voterà o no
-	 * per il richiedente
+	 * Gestione della ricezione del messaggio di una voteRequest: voterà o no per il
+	 * richiedente
 	 * 
-	 * @param resp
-	 *            VoteRequest
+	 * @param resp VoteRequest
 	 */
 	private void handleVoteRequest(VoteRequest resp) {
 		// Se sono candidato/leader e mi arriva un term più alto torno follower
@@ -371,8 +335,7 @@ public class Node implements Runnable {
 		if (resp.getTerm() >= this.currentTerm) {
 			if ((this.votedFor == null || this.votedFor.equals(resp.getSender()))
 					&& resp.getLastLogIndex() >= this.lastApplied) {
-				this.linker.sendMessage(new VoteResponse(this.currentTerm, true, 
-						this.myFullAddress), resp.getSender());
+				this.linker.sendMessage(new VoteResponse(this.currentTerm, true, this.myFullAddress), resp.getSender());
 				this.votedFor = resp.getSender();
 				return;
 			}
@@ -383,22 +346,28 @@ public class Node implements Runnable {
 	}
 
 	/**
-	 * Chiama la funzione per applicare le entry alla state machine per ogni
-	 * entry nel log che non è stata ancora applicata ma è stata committata.
+	 * Chiama la funzione per applicare le entry alla state machine per ogni entry
+	 * nel log che non è stata ancora applicata ma è stata committata.
 	 * 
-	 * @param lastCommitIndex
-	 *            rappresenta l'ultima entry applicata alla sm
-	 * @param committable
-	 *            è l'indice dell'ultima entry da applicare
+	 * @param lastCommitIndex rappresenta l'ultima entry applicata alla sm
+	 * @param committable     è l'indice dell'ultima entry da applicare
 	 */
 	private void applyEntries(int lastCommitIndex, int committable) {
-		System.out.println("[" + this.myFullAddress + "] Last commit index: " + 
-				lastCommitIndex + " Committable " + committable);
+		System.out.println(
+				"[" + this.myFullAddress + "] Last commit index: " + lastCommitIndex + 
+				" Committable " + committable);
 		for (int i = lastCommitIndex + 1; i <= committable; i++) {
 			Entry e = this.log.getEntry(i);
-			if(!this.sm.applyEntry(e))
-				System.err.println("[" + this.myFullAddress + "] Invalid command in "
-						+ "log");
+			if (!this.sm.applyEntry(e)) {
+				System.err.println("[" + this.myFullAddress + "] Invalid command in " + 
+						"log");
+			}
+			// Se è una get, mando un messaggio al client con il valore della state machine
+			String[] s = ((String)e.getCommand()).split(" ");
+			if(s[0].equals("get") && this.role.equals(Role.LEADER)) {
+				this.linker.sendMessage(new ClientResponse(
+						this.getStateMachine().getState(),true), s[1]);
+			}
 			this.lastApplied = i;
 		}
 	}
@@ -419,8 +388,7 @@ public class Node implements Runnable {
 	// Getter/Setter
 	public void setRole(Role role) {
 		this.voters.clear();
-		System.out.println("[" + this.myFullAddress + "] changed role to " + 
-				role.toString());
+		System.out.println("[" + this.myFullAddress + "] changed role to " + role.toString());
 		this.role = role;
 		switch (role) {
 		case FOLLOWER:
@@ -432,8 +400,7 @@ public class Node implements Runnable {
 			this.voters.clear();
 			this.votedFor = this.myFullAddress;
 			this.setElectionTimeout();
-			this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex,
-					currentTerm));
+			this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm));
 			break;
 		case LEADER:
 			// heartbeat
@@ -442,7 +409,6 @@ public class Node implements Runnable {
 			this.stopElection();
 			this.nextIndex.clear();
 			for (String nodeAd : this.addresses) {
-				// Controllare se è commitIndex or lastApplied
 				this.nextIndex.put(nodeAd, this.commitIndex + 1);
 			}
 			this.startHeartbeats();

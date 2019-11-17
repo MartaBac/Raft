@@ -18,16 +18,20 @@ public class StateMachine {
 	public boolean applyEntry(Entry entry){
 		String command = (String) entry.getCommand();
 		String[] commands = command.split(" ");
-		int value = Integer.parseInt(commands[1]);
-		switch (commands[0]) { 
-		case "add":
-			this.state += value;
-			break;
-		case "sub":
-			this.state -= value;
-			break;
-		default:
-			return false;
+		int value;
+		switch (commands[0]) {
+			case "get":
+				break;
+			case "add":
+				value = Integer.parseInt(commands[1]);
+				this.state += value;
+				break;
+			case "sub":
+				value = Integer.parseInt(commands[1]);
+				this.state -= value;
+				break;
+			default:
+				return false;
 		}
 		return true;
 	}
