@@ -51,13 +51,13 @@ public class Launcher {
 
 		// Main
 		boolean exit = false;
+		Scanner in = new Scanner(System.in);
 		while (!exit) {
 			// Gestione dati acquisiti dalla scrittura su console
-			Scanner in = new Scanner(System.in);
 			String s = in.nextLine();
-			exit = commandTranslation(s);
-			in.close();
+			exit = commandTranslation(s);	
 		}
+		in.close();
 	}
 
 	private static void printNodeList() {
