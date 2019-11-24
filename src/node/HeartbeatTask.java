@@ -18,9 +18,11 @@ public class HeartbeatTask extends TimerTask {
 		sendHeartbeats();
 	}
 	
+	/**
+	 * Task per l'invio degli Heartbeats ai nodi.
+	 */
 	public void sendHeartbeats(){
 		AppendRequest hb;
-		// Invio hearbeat ai follower
 		for(String toFollower : this.node.getAddressesList()){
 			int indexF = this.node.getNextIndex().get(toFollower);
 			hb = new AppendRequest(

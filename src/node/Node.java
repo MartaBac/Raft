@@ -56,14 +56,22 @@ public class Node implements Runnable {
 		this.setRole(Role.FOLLOWER);
 	}
 
+	/**
+	 * Setta l'electionTimeout ad un valore generato randomicamente in un dato range
+	 */
 	private void setElectionTimeout() {
 		this.stopElection();
 		this.electionTask = new ElectionTask(this);
 		double randomDouble = Math.random();
-		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - Variables.minRet)) + Variables.minRet;
+		this.electionTimeout = (long) (randomDouble * (Variables.maxRet - 
+				Variables.minRet)) + Variables.minRet;
 		this.timer.schedule(this.electionTask, this.electionTimeout);
 	}
 
+	/**
+	 * Setta l'electionTimeout ad un valore specificato
+	 * @param electionTimeout
+	 */
 	public void setElectionTimeout(int electionTimeout) {
 		this.stopElection();
 		this.electionTask = new ElectionTask(this);
@@ -190,34 +198,34 @@ public class Node implements Runnable {
 	}
 
 	/**
-	 * 
-	 * @param response
+	 * Gestisce le diverse tipologie di clientRequest in arrivo al nodo
+	 * @param request	ClientRequest ricevuta
 	 */
-	private void handleClientRequest(ClientRequest response) {
+	private void handleClientRequest(ClientRequest request) {
 		ClientResponse resp;
 		if (!this.role.equals(Role.LEADER)) {
 			resp = new ClientResponse(this.leaderId, false);
-			this.linker.sendMessage(resp, response.getAddress());
+			this.linker.sendMessage(resp, request.getAddress());
 			return;
 		}
 		Entry e;
-		switch (response.getRequest()) {
+		switch (request.getRequest()) {
 			case "get":
-				e = new Entry(response.getRequest() + " " + response.getAddress(), 
+				e = new Entry(request.getRequest() + " " + request.getAddress(), 
 						this.currentTerm);
 				break;
 			case "op":
-				e = new Entry(response.getParams(), this.currentTerm);
+				e = new Entry(request.getParams(), this.currentTerm);
 				break;
 			default:
-				resp = new ClientResponse("Invalid command " + response.getParams(), 
+				resp = new ClientResponse("Invalid command " + request.getParams(), 
 						false);
-				this.linker.sendMessage(resp, response.getAddress());
+				this.linker.sendMessage(resp, request.getAddress());
 				return;
 		}
 		if (!this.log.appendEntry(e)) {
-			resp = new ClientResponse("Error appending " + response.getParams(), false);
-			this.linker.sendMessage(resp, response.getAddress());
+			resp = new ClientResponse("Error appending " + request.getParams(), false);
+			this.linker.sendMessage(resp, request.getAddress());
 			return;
 		}
 		AppendRequest req;
@@ -369,6 +377,12 @@ public class Node implements Runnable {
 		}
 	}
 
+	/**
+	 * Inserisce indirizzo degli altri nodi (non il proprio) in elenco
+	 * 
+	 * @param address	Indirizzo da inserire
+	 * @return	True se è stato inserito
+	 */
 	public boolean addAddress(String address) {
 		// Controllo che non mi sia passato il mio stesso indirizzo
 		if (address.equals(this.address + ":" + this.port))
@@ -376,7 +390,10 @@ public class Node implements Runnable {
 		return this.addresses.add(address);
 	}
 
-	// Getter/Setter
+	/**
+	 * Imposta il ruolo di un nodo ad uno specificato e esegue le operazioni di routine
+	 * @param role	Ruolo a cui impostarlo
+	 */
 	public void setRole(Role role) {
 		this.voters.clear();
 		System.out.println("[" + this.myFullAddress + "] changed role to " + role.toString());

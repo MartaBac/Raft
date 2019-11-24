@@ -5,9 +5,6 @@ import java.util.ArrayList;
 import node.Entry;
 
 public class AppendRequest extends Msg {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	int toBeCommitted;
 	private int term;
@@ -17,6 +14,16 @@ public class AppendRequest extends Msg {
 	private ArrayList<Entry> entry;
 	private int leaderCommit;
 	
+	/**
+	 * Messaggi inviati dal leader verso i nodi
+	 * 
+	 * @param term			Term del leader
+	 * @param leaderId		Indirizzo del leader
+	 * @param prevLogIndex	Indice della log entry immediatamente precedente le nuove 
+	 * @param prevLogTerm	Term della log entry prima delle nuove
+	 * @param entry			ArrayList delle Entry da inserire
+	 * @param leaderCommit	Indice di commit del leader
+	 */
 	public AppendRequest(int term, String leaderId, int prevLogIndex, int prevLogTerm, 
 			ArrayList<Entry> entry, int leaderCommit){
 		this.leaderId = leaderId;

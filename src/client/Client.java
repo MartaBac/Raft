@@ -14,7 +14,11 @@ import java.net.Socket;
 
 import messages.*;
 
-/* This class will handle the incoming messages from other nodes */
+/**
+ * Classe per la gestione di invio e ricezione dei messaggi nella rete.
+ *
+ */
+
 public class Client implements Runnable {
     private ServerSocket server;
     private int port;
@@ -55,29 +59,50 @@ public class Client implements Runnable {
         }
     }
     
+    /**
+     * Gestione dei messaggi ricevuti
+     * @param receivedValue		Può essere lo stato del sistema o un messaggio (errore 
+     * 							o indirizzo Leader)
+     */
     private void processMessage(Msg receivedValue) {
 		if (receivedValue instanceof ClientResponse) {
 			ClientResponse response = (ClientResponse) receivedValue;
 			if(response.isState()) {
-				// Ricevo lo stato del sistema
 				System.out.println(response.getParams());
 			} else {
-				// Messaggio errore
 				System.err.println((String) response.getParams());
 			}	
 		}	
 	}
 
+    /**
+     * Invio messaggio di tipo get
+     * 
+     * @param address	Indirizzo a cui mandare il messaggio
+     */
 	public boolean get(String address) {
     	ClientRequest msg = new ClientRequest("get", this.fullAddress);
     	return this.sendMessage(address, msg);
     }
     
+	/**
+	 * Invio messaggio di tipo op
+	 * 
+	 * @param address	Indirizzo a cui mandare il messaggio
+	 * @param line		Operazione da effettuare (i.e. add 1 )
+	 */
     public boolean operation(String address, String line) {
     	ClientRequest msg = new ClientRequest("op", this.fullAddress, line);
     	return this.sendMessage(address, msg);
 	}
     
+    /**
+     * Invio di una ClientRequest ad un nodo specificato
+     * @param address	Indirizzo nodo
+     * @param msg		Messaggio
+     * 
+     * @return			True se inviato con successo
+     */
     public boolean sendMessage(String address, ClientRequest msg) {
     	String[] split;
 		String sendToAddr;

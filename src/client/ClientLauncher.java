@@ -3,6 +3,11 @@ package client;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
+/**
+ * Interfaccia del Client.
+ *
+ */
+
 public class ClientLauncher {
 	public static void main(String[] args) {
 		Client client = new Client();

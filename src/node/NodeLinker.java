@@ -52,6 +52,14 @@ public class NodeLinker implements Runnable {
         }
     }
     
+    /**
+     * Invia un messaggio ad un certo indirizzo
+     * 
+     * @param msg		Messaggio da inviare
+     * @param address	Indirizzo del ricevente
+     * 
+     * @return			true se invio avvenuto correttamente
+     */
 	public boolean sendMessage(Msg msg, String address) {
 		String[] split = address.split(":");
 		String receiverAddress = split[0];

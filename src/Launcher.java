@@ -9,7 +9,7 @@ import node.Node;
 import node.Role;
 import node.Variables;
 /**
- * Implementazione meccanismo di leader election del Raft protocol
+ * Classe Main per la creazione e gestione dei nodi.
  * 
  */
 public class Launcher {
