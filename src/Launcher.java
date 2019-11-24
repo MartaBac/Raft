@@ -92,6 +92,16 @@ public class Launcher {
 	public static boolean commandTranslation(String s){
 		String[] split = s.split(" ");
 		switch (split[0]) {
+		case "get":
+			switch (split[1]){
+			case "nodes":
+				printNodeList();
+				break;
+			default:
+				System.err.println("[Main] Error: invalid input set");
+				break;
+			}
+			break;
 		case "set":
 			switch (split[1]) {
 			case "electionTimeout":

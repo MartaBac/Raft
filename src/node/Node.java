@@ -23,12 +23,11 @@ public class Node implements Runnable {
 	// Raft variables
 	private Role role = Role.FOLLOWER;
 	private Log log = new Log();
-	private HashSet<String> voters = new HashSet<String>(); // Totale voti ricevuti
-	private String votedFor = null; // Id nodo per cui ha votato
+	private HashSet<String> voters = new HashSet<String>(); // Elenco di chi l'ha votato
+	private String votedFor = null; 
 	private int currentTerm = 0;
-	private int commitIndex = -1; // Indice > fra i log, potrebbe essere ancora
-									// da committare
-	private int lastApplied = -1; // Indice dell'ultimo log applicato alla SM
+	private int commitIndex = -1; 
+	private int lastApplied = -1; 
 	private HashMap<String, Integer> nextIndex = new HashMap<String, Integer>();
 	private StateMachine sm = new StateMachine();
 	private String leaderId = null;
@@ -176,14 +175,13 @@ public class Node implements Runnable {
 				return;
 			}
 			if (e.getTerm() != resp.getPrevLogTerm()) {
-				// rispondo false e sostituisco
+				// Rispondo false e sostituisco
 				this.log.deleteFrom(resp.getPrevLogIndex());
-				// risposta false
 				appResponse = new AppendResponse(this.currentTerm, false, this.myFullAddress);
 				this.linker.sendMessage(appResponse, resp.getLeaderId());
 				return;
 			}
-			// rispondo true dopo aver fatto l'append
+			// Rispondo true dopo aver fatto l'append
 			this.log.appendEntries(resp.getEntry(), resp.getPrevLogIndex() + 1);
 			appResponse = new AppendResponse(this.currentTerm, true, this.myFullAddress);
 			this.linker.sendMessage(appResponse, resp.getLeaderId());
@@ -252,16 +250,14 @@ public class Node implements Runnable {
 				comCount.add(i - 1);
 			}
 			Collections.sort(comCount, Collections.reverseOrder());
-			// La maggioranza sarebbe + 1 ma sto cercando l'indice -> farei
-			// +1 -1
+			// La maggioranza sarebbe + 1 ma sto cercando l'indice -> farei +1 -1
 			int indexMajority = Math.floorDiv(comCount.size() + 1, 2);
 			// Cerco il maggiore committabile
 			int committable = comCount.get(indexMajority);
 			if (committable > this.commitIndex) {
-				System.out.println("[" + this.myFullAddress + "] commit committable " + committable);
-				// committo
+				System.out.println("[" + this.myFullAddress + "] commit committable " + 
+						committable);
 				this.commitIndex = committable;
-				// applico state machine
 				this.applyEntries(this.lastApplied, committable);
 			}
 
@@ -270,20 +266,19 @@ public class Node implements Runnable {
 				this.currentTerm = response.getTerm();
 				this.setRole(Role.FOLLOWER);
 			} else {
-				// Decremento nextIndex per quel follower perchè mi ha risposto false
+				// Decremento nextIndex per quel follower perché mi ha risposto false
 				// nonostante fosse nel termine giusto
 				int decrementedIndex = this.nextIndex.get(response.getSender()) - 1;
 				this.nextIndex.put(response.getSender(), decrementedIndex);
 				// Mando appendRequest usando il nuovo index
-				AppendRequest req = new AppendRequest(this.currentTerm, this.myFullAddress, decrementedIndex,
-						this.log.getEntry(decrementedIndex).getTerm(), this.log.getEntries(decrementedIndex),
-						this.commitIndex);
+				AppendRequest req = new AppendRequest(this.currentTerm, 
+						this.myFullAddress, decrementedIndex,
+						this.log.getEntry(decrementedIndex).getTerm(), 
+						this.log.getEntries(decrementedIndex), this.commitIndex);
 				this.linker.sendMessage(req, response.getSender());
-
 			}
 		}
 		return;
-
 	}
 
 	/**
@@ -330,7 +325,8 @@ public class Node implements Runnable {
 		if (resp.getTerm() >= this.currentTerm) {
 			if ((this.votedFor == null || this.votedFor.equals(resp.getSender()))
 					&& resp.getLastLogIndex() >= this.lastApplied) {
-				this.linker.sendMessage(new VoteResponse(this.currentTerm, true, this.myFullAddress), resp.getSender());
+				this.linker.sendMessage(new VoteResponse(this.currentTerm, true, 
+						this.myFullAddress), resp.getSender());
 				this.votedFor = resp.getSender();
 				return;
 			}
@@ -357,7 +353,7 @@ public class Node implements Runnable {
 				System.err.println("[" + this.myFullAddress + "] Invalid command in " + 
 						"log");
 			}
-			// Se è una get, mando un messaggio al client con il valore della state machine
+			// Se è una get mando un messaggio al client con il valore della sm
 			String[] s = ((String)e.getCommand()).split(" ");
 			if(s[0].equals("get") && this.role.equals(Role.LEADER)) {
 				this.linker.sendMessage(new ClientResponse(
@@ -395,10 +391,10 @@ public class Node implements Runnable {
 			this.voters.clear();
 			this.votedFor = this.myFullAddress;
 			this.setElectionTimeout();
-			this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex, currentTerm));
+			this.sendBroadcast(new VoteRequest(currentTerm, myFullAddress, commitIndex, 
+					currentTerm));
 			break;
 		case LEADER:
-			// heartbeat
 			// Disattivo timeoutElection
 			this.leaderId = this.myFullAddress;
 			this.stopElection();

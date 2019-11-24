@@ -49,7 +49,13 @@ public class Log {
 	}
 	
 	public ArrayList<Entry> getEntries(int i){
-		return new ArrayList<Entry>(entries.subList(i, entries.size()));
+		if(i >= 0 && entries.size() > i)
+			return new ArrayList<Entry>(entries.subList(i, entries.size()));
+		else{
+			ArrayList<Entry> a = new ArrayList<Entry>();
+			a.add(new Entry(null, -1));
+			return a;
+		}
 	}
 	
 	public void deleteFrom(int i){
@@ -63,6 +69,9 @@ public class Log {
 		String result = "";
 		for(Entry e: this.entries) {
 			result += e.toString() + " \n"; 
+		}
+		if(result.equals("")){
+			return "[]";
 		}
 		return result;
 	}
