@@ -7,12 +7,12 @@ import java.util.Scanner;
 
 import node.Node;
 import node.Role;
+import node.Variables;
 /**
  * Implementazione meccanismo di leader election del Raft protocol
  * 
  */
 public class Launcher {
-	private static final int nNodes = 5;
 	private static String ip = null;
 	private static HashMap<String, Node> listaNodi = new HashMap<String, Node>();
 
@@ -28,7 +28,7 @@ public class Launcher {
 		}
 		
 		// Creo nuovi nodi
-		for (int i = 0; i < nNodes; i++) {
+		for (int i = 0; i < Variables.nNodes; i++) {
 			t = new Node(i, ip);
 			listaNodi.put(ip + ":" + String.valueOf(t.getPort()), t);
 		}
@@ -62,7 +62,7 @@ public class Launcher {
 
 	private static void printNodeList() {
 		System.out.println("[Main] List of nodes (port number):");
-		listaNodi.forEach((k, v) -> System.out.println(" - " + k.split(":")[1]));
+		listaNodi.forEach((k, v) -> System.out.println(" - " + k));
 	}
 
 	/**
@@ -95,11 +95,10 @@ public class Launcher {
 		case "set":
 			switch (split[1]) {
 			case "electionTimeout":
-				if (split.length >= 4 && isNumeric(split[3]) && listaNodi.containsKey(ip 
-						+ ":" + split[2])) {
+				if (split.length >= 4 && isNumeric(split[3]) && listaNodi.containsKey(split[2])) {
 					System.out.println("[Main] Setting election timeout of " + split[2] + " to "
 						+ split[3]);
-					listaNodi.get(ip + ":" + split[2]).setElectionTimeout(Integer.valueOf
+					listaNodi.get(split[2]).setElectionTimeout(Integer.valueOf
 							(split[3]));
 				} else {
 					System.err.println("[Main] Error: invalid input in election timeout");
@@ -131,15 +130,15 @@ public class Launcher {
 			switch (split[1]) {
 			case "state":
 				System.out.println("[Main] State of " + split[2] + " is "+
-						listaNodi.get(ip + ":" + split[2]).getStateMachine().toString());
+						listaNodi.get(split[2]).getStateMachine().toString());
 				break;
 			case "log":
 				System.out.println("[Main] Log of " + split[2] + " is "+
-						listaNodi.get(ip + ":" + split[2]).getLog().toString());
+						listaNodi.get(split[2]).getLog().toString());
 				break;
 			case "term":
 				System.out.println("[Main] Term of " + split[2] + " is "+
-						listaNodi.get(ip + ":" + split[2]).getCurrentTerm());
+						listaNodi.get(split[2]).getCurrentTerm());
 				break;
 			default:
 				System.err.println("[Main] Error: invalid input set");

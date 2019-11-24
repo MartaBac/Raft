@@ -6,4 +6,5 @@ public class Variables {
 	public static long minRet = 100 * debugMultiplicator; // in teoria questo 10ms (pag 10 paper)
 	public static long maxRet = 500 * debugMultiplicator; // in teoria questo 500ms
 	public static long heartbeat = 10 * debugMultiplicator; // in teoria fra (0.5-20)
+	public static long nNodes = 5;
 }
