@@ -61,7 +61,7 @@ public class Launcher {
 	}
 
 	private static void printNodeList() {
-		System.out.println("[Main] List of nodes (port number):");
+		System.out.println("[Main] List of nodes:");
 		listaNodi.forEach((k, v) -> System.out.println(" - " + k));
 	}
 
