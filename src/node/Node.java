@@ -29,6 +29,7 @@ public class Node implements Runnable {
 	private int commitIndex = -1; 
 	private int lastApplied = -1; 
 	private HashMap<String, Integer> nextIndex = new HashMap<String, Integer>();
+	private HashMap<String, Integer> matchIndex = new HashMap<String, Integer>();
 	private StateMachine sm = new StateMachine();
 	private String leaderId = null;
 
@@ -143,9 +144,9 @@ public class Node implements Runnable {
 		if (resp.getLeaderCommit() > this.commitIndex) {
 			// Sono state committate delle entries
 			if (this.log.getEntry(resp.getPrevLogIndex()).getTerm() == resp.getPrevLogTerm()) {
-				System.out.println("[" + this.myFullAddress + "] LEADER COMMIT 2: "
-						+ this.log.getEntry(resp.getPrevLogIndex()).getTerm());
 				this.commitIndex = resp.getLeaderCommit();
+				System.out.println("[" + this.myFullAddress + "] Commited index " + 
+						this.commitIndex);
 				this.applyEntries(this.lastApplied, this.commitIndex);
 			} else {
 				this.linker.sendMessage(new AppendResponse(this.currentTerm, false, this.myFullAddress),
@@ -252,9 +253,10 @@ public class Node implements Runnable {
 	private void handleAppendResponse(AppendResponse response) {
 		if (response.isSuccess()) {
 			this.nextIndex.put(response.getSender(), this.log.getDimension());
+			this.matchIndex.put(response.getSender(), this.log.getDimension());
 			// Controllo cosa posso committare
 			ArrayList<Integer> comCount = new ArrayList<Integer>();
-			for (Integer i : this.nextIndex.values()) {
+			for (Integer i : this.matchIndex.values()) {
 				comCount.add(i - 1);
 			}
 			Collections.sort(comCount, Collections.reverseOrder());
@@ -263,8 +265,6 @@ public class Node implements Runnable {
 			// Cerco il maggiore committabile
 			int committable = comCount.get(indexMajority);
 			if (committable > this.commitIndex) {
-				System.out.println("[" + this.myFullAddress + "] commit committable " + 
-						committable);
 				this.commitIndex = committable;
 				this.applyEntries(this.lastApplied, committable);
 			}
@@ -352,9 +352,6 @@ public class Node implements Runnable {
 	 * @param committable     è l'indice dell'ultima entry da applicare
 	 */
 	private void applyEntries(int lastCommitIndex, int committable) {
-		System.out.println(
-				"[" + this.myFullAddress + "] Last commit index: " + lastCommitIndex + 
-				" Committable " + committable);
 		for (int i = lastCommitIndex + 1; i <= committable; i++) {
 			Entry e = this.log.getEntry(i);
 			if (!this.sm.applyEntry(e)) {
@@ -416,8 +413,10 @@ public class Node implements Runnable {
 			this.leaderId = this.myFullAddress;
 			this.stopElection();
 			this.nextIndex.clear();
+			this.matchIndex.clear();
 			for (String nodeAd : this.addresses) {
-				this.nextIndex.put(nodeAd, this.commitIndex + 1);
+				this.nextIndex.put(nodeAd, this.log.getDimension());
+				this.matchIndex.put(nodeAd, this.commitIndex + 1);
 			}
 			this.startHeartbeats();
 			break;
