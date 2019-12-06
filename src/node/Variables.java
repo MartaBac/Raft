@@ -10,10 +10,9 @@ package node;
  *
  */
 public class Variables {
-	// Election timeout
-	private static int debugMultiplicator = 10;
-	public static long minRet = 10 * debugMultiplicator; // In teoria questo 10ms (pag.10 paper)
-	public static long maxRet = 500 * debugMultiplicator; // In teoria questo 500ms
-	public static long heartbeat = 3 * debugMultiplicator; // In teoria fra (0.5-20)
+	private static int debugMultiplicator = 20;
+	public static long minRet = 10 * debugMultiplicator;  
+	public static long maxRet = 500 * debugMultiplicator; 
+	public static long heartbeat = 3 * debugMultiplicator; 
 	public static long nNodes = 5;
 }

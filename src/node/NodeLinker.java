@@ -48,8 +48,8 @@ public class NodeLinker implements Runnable {
                 is = s.getInputStream();
                 ois = new ObjectInputStream(is);
                 Msg receivedValue = (Msg) ois.readObject();
-                node.processMessage(receivedValue);
                 s.close();
+                node.processMessage(receivedValue); 
             } catch (Exception ex) {
                 System.err.println("NodeLinker Error 002 - Node: " + this.node.getId());
                 ex.printStackTrace();

@@ -8,6 +8,9 @@ package node;
 public class StateMachine {
 	private int state;
 	
+	/**
+	 * La state machine ha valore iniziale 0
+	 */
 	public StateMachine(){
 		this.setState(0);
 	}
