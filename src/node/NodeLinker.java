@@ -1,5 +1,6 @@
 package node;
 import java.io.IOException;
+
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,7 +14,11 @@ import java.net.Socket;
 
 import messages.Msg;
 
-/* This class will handle the incoming messages from other nodes */
+
+/**
+ * Classe per la gestione dei messaggi in arrivo dagli altri Nodi attraverso i Socket
+ *
+ */
 public class NodeLinker implements Runnable {
     private ServerSocket server;
     private int port;

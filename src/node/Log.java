@@ -1,6 +1,11 @@
 package node;
 import java.util.ArrayList;
 
+/**
+ * La classe contiene un elenco di Entry inserite in conseguenza alla ricezione di una 
+ * appendRequest contenente Entry.
+ *
+ */
 public class Log {
 	private ArrayList<Entry> entries = new ArrayList<Entry>();
 	

@@ -27,7 +27,7 @@ public class Launcher {
 			System.exit(-1);
 		}
 		
-		// Creo nuovi nodi
+		// Creazione nuovi nodi
 		for (int i = 0; i < Variables.nNodes; i++) {
 			t = new Node(i, ip);
 			listaNodi.put(ip + ":" + String.valueOf(t.getPort()), t);
@@ -66,6 +66,7 @@ public class Launcher {
 	}
 
 	/**
+	 * Controlla se una stringa rappresenta un numero
 	 * 
 	 * @param strNum
 	 * @return true se la String rappresenta un numero in cifre
@@ -82,10 +83,15 @@ public class Launcher {
 	/**
 	 * Funzione per smistare/tradurre in metodi ciò che l'utente scrive in console.
 	 * Operazioni supportate:
-	 * 'set electionTimeout portNumber int' <- con portNumber una delle port stampate 
+	 * 'get nodes' <- stampa elenco nodi
+	 * 
+	 * 'set electionTimeout indirizzo int' <- con portNumber una delle port stampate 
 	 * 		dal pogramma e int un intero a cui settare il timeout(in ms)
 	 * 'stop heartbeats' <- per far smettere al leader di mandare heartbeats, ciò porterò
 	 * 		al cambio di leader
+	 * 'check state indirizzo' <- restituisce la SM del nodo specificato
+	 * 'check log indirizzo' <- restituisce il log del nodo specificato
+	 * 'check term indirizzo' <- restituisce il numero del term del nodo specificato
 	 * @param s Stringa inserita dall'utente
 	 * @return 
 	 */

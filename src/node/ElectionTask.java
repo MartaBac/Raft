@@ -3,7 +3,7 @@ package node;
 import java.util.TimerTask;
 
 /**
- * Quando il timer del nodo scade gli fa il set del ruolo a Candidate
+ * Contiene le funzioni da eseguire quando scade l'electionTimeout
  * 
  */
 
@@ -16,6 +16,9 @@ public class ElectionTask extends TimerTask {
 		this.node = node;
 	}
 
+	/**
+	 * Quando il timer del nodo scade il ruolo del nodo diventa Candidate
+	 */
 	@Override
 	public void run() {
 		this.node.setRole(Role.CANDIDATE);

@@ -2,7 +2,13 @@ package node;
 
 import java.util.TimerTask;
 
+
 import messages.AppendRequest;
+
+/**
+ * Contiene le operazioni da eseguire quando scade il timeout di invio degli heartbeat
+ *
+ */
 
 public class HeartbeatTask extends TimerTask {
 	

@@ -1,5 +1,10 @@
 package node;
 
+/**
+ * Classe contenente lo stato del Nodo, sul quale vengono fatte le operazioni 
+ * contenute nel Log.
+ *
+ */
 public class StateMachine {
 	private int state;
 	
