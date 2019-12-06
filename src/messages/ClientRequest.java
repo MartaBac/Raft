@@ -6,9 +6,9 @@ package messages;
  */
 public class ClientRequest extends Msg {
 	private static final long serialVersionUID = 1L;
-	String request;
-	String address;
-	String params;
+	private String request;
+	private String address;
+	private String params;
 	
 	/**
 	 * Richiesta da parte del client senza params (i.e. get).
